@@ -1,0 +1,29 @@
+# Render Blueprint for the OpsApp Flutter web frontend (Static Site).
+#
+# You can either:
+#   A) Import this as a Blueprint (New + → Blueprint → pick this repo), or
+#   B) Create the Static Site manually and copy the buildCommand /
+#      publishPath / env vars from here (see DEPLOY.md).
+#
+# IMPORTANT: set API_BASE_URL to your deployed backend URL (no trailing slash)
+# *before* the first build, otherwise the build fails fast on purpose.
+
+services:
+  - type: web
+    name: opsapp-web
+    runtime: static
+    branch: main
+    buildCommand: bash tool/render-build.sh
+    staticPublishPath: build/web
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: FLUTTER_VERSION
+        value: 3.41.7
+      # Replace with your real backend URL once the backend is live.
+      - key: API_BASE_URL
+        value: https://opsapp-backend.onrender.com
+    routes:
+      # SPA fallback so deep links / refreshes resolve to the Flutter app.
+      - type: rewrite
+        source: /*
+        destination: /index.html
