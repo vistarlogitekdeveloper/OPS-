@@ -20,7 +20,7 @@ class ApiConfig {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:4000';
     }
-    return 'http://localhost:4000';
+    return 'https://ops-backend-eqqd.onrender.com';
   }
 
   static String get apiRoot => '$baseUrl/api';
