@@ -19,9 +19,8 @@ services:
     envVars:
       - key: FLUTTER_VERSION
         value: 3.41.7
-      # Replace with your real backend URL once the backend is live.
       - key: API_BASE_URL
-        value: https://opsapp-backend.onrender.com
+        value: https://ops-backend-eqqd.onrender.com
     routes:
       # SPA fallback so deep links / refreshes resolve to the Flutter app.
       - type: rewrite
