@@ -406,6 +406,7 @@ class _CategoryTile extends ConsumerWidget {
               FileTypeCode.excel => ['xls', 'xlsx'],
               FileTypeCode.jpeg => ['jpg', 'jpeg'],
               FileTypeCode.word => ['doc', 'docx'],
+              FileTypeCode.unknown => <String>[],
             })
         .expand((e) => e)
         .toList();

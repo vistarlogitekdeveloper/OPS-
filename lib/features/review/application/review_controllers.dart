@@ -1,16 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/page_result.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/data/auth_models.dart';
 import '../../submissions/data/submission_models.dart';
 import '../../submissions/data/submissions_repository.dart';
 
-/// Queue of SUBMITTED submissions awaiting decision. Scoped by role on the
-/// server side — manager sees their assigned projects only; admin/ops_excellence
-/// see all.
+/// Work queue for reviewers. Managers/admins act on SUBMITTED submissions
+/// (approve/reject); Ops Excellence allocates marks on APPROVED ones, so they
+/// get the APPROVED list instead. Further scoped by assignment on the server.
 class ReviewQueueController extends AsyncNotifier<PageResult<Submission>> {
   @override
   Future<PageResult<Submission>> build() {
-    return ref.read(submissionsRepositoryProvider).queue();
+    final role = ref.watch(authControllerProvider).user?.role;
+    final repo = ref.read(submissionsRepositoryProvider);
+    if (role == UserRole.opsExcellence) {
+      return repo.list(status: 'APPROVED');
+    }
+    return repo.queue();
   }
 
   Future<void> refresh() async {

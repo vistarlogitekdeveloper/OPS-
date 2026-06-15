@@ -82,13 +82,14 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState(status: AuthStatus.authenticated, user: session.user);
       return true;
     } on DioException catch (e) {
-      state = state.copyWith(
+      // Drop any stale user from a prior session on a failed login.
+      state = AuthState(
         status: AuthStatus.unauthenticated,
         errorMessage: _messageFor(e),
       );
       return false;
     } catch (e) {
-      state = state.copyWith(
+      state = AuthState(
         status: AuthStatus.unauthenticated,
         errorMessage: 'Unexpected error: $e',
       );

@@ -19,6 +19,24 @@ class SubmissionsRepository {
     return PageResult.fromJson<Submission>(res.data!, Submission.fromJson);
   }
 
+  /// Lists submissions, optionally filtered by status. Role-scoped on the
+  /// server. Used e.g. by Ops Excellence to find APPROVED submissions to score.
+  Future<PageResult<Submission>> list({
+    String? status,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/submissions',
+      queryParameters: {
+        'status': ?status,
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
+    return PageResult.fromJson<Submission>(res.data!, Submission.fromJson);
+  }
+
   Future<Submission> getById(String id) async {
     final res = await _dio.get<Map<String, dynamic>>('/submissions/$id');
     return Submission.fromJson(res.data!['submission'] as Map<String, dynamic>);

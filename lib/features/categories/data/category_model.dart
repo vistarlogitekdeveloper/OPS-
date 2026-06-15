@@ -1,4 +1,4 @@
-enum FileTypeCode { pdf, ppt, excel, jpeg, word }
+enum FileTypeCode { pdf, ppt, excel, jpeg, word, unknown }
 
 FileTypeCode fileTypeFromWire(String raw) {
   switch (raw) {
@@ -13,7 +13,10 @@ FileTypeCode fileTypeFromWire(String raw) {
     case 'WORD':
       return FileTypeCode.word;
     default:
-      throw ArgumentError('Unknown FileTypeCode: $raw');
+      // Forward-compatible: a file type the server added but this build doesn't
+      // know yet shouldn't crash the whole screen. Mirrors the other *FromWire
+      // helpers, which all fall back to `.unknown`.
+      return FileTypeCode.unknown;
   }
 }
 
@@ -23,6 +26,7 @@ String fileTypeToWire(FileTypeCode t) => switch (t) {
       FileTypeCode.excel => 'EXCEL',
       FileTypeCode.jpeg => 'JPEG',
       FileTypeCode.word => 'WORD',
+      FileTypeCode.unknown => 'UNKNOWN',
     };
 
 String fileTypeLabel(FileTypeCode t) => switch (t) {
@@ -31,6 +35,7 @@ String fileTypeLabel(FileTypeCode t) => switch (t) {
       FileTypeCode.excel => 'Excel',
       FileTypeCode.jpeg => 'JPEG',
       FileTypeCode.word => 'Word',
+      FileTypeCode.unknown => 'File',
     };
 
 class ReportCategory {

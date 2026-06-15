@@ -370,6 +370,7 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
         FileTypeCode.jpeg => 'image/jpeg',
         FileTypeCode.word =>
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        FileTypeCode.unknown => 'application/octet-stream',
       };
 
   Future<void> _openScore() async {

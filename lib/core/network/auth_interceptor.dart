@@ -55,6 +55,11 @@ class AuthInterceptor extends Interceptor {
 
     request.headers['Authorization'] = 'Bearer ${refreshed.access}';
     request.extra['__opsapp_retry__'] = true;
+    // Multipart bodies are single-use streams — the first attempt consumed it.
+    // Clone it so the retry re-sends the file bytes instead of an empty body.
+    if (request.data is FormData) {
+      request.data = (request.data as FormData).clone();
+    }
     try {
       final retry = await refreshClient.fetch(request);
       return handler.resolve(retry);

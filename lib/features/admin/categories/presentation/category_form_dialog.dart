@@ -27,7 +27,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
   @override
   void initState() {
     super.initState();
-    _types = widget.initial?.allowedFileTypes.toSet() ?? <FileTypeCode>{FileTypeCode.pdf};
+    _types = (widget.initial?.allowedFileTypes.toSet() ?? <FileTypeCode>{FileTypeCode.pdf})
+      ..remove(FileTypeCode.unknown);
   }
 
   @override
@@ -98,7 +99,7 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    for (final t in FileTypeCode.values)
+                    for (final t in FileTypeCode.values.where((t) => t != FileTypeCode.unknown))
                       FilterChip(
                         label: Text(fileTypeLabel(t)),
                         selected: _types.contains(t),
