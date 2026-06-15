@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/vistar.dart';
 import '../../data/dashboard_models.dart';
 
 class ProjectsBarChart extends StatelessWidget {
@@ -12,10 +13,25 @@ class ProjectsBarChart extends StatelessWidget {
     final theme = Theme.of(context);
     final items = page.items;
     if (items.isEmpty) {
-      return Center(child: Text('No projects in scope.', style: theme.textTheme.bodyMedium));
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            'No projects in scope.',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ),
+      );
     }
-    final maxScore = items.fold<int>(0, (m, r) => r.totalScore > m ? r.totalScore : m);
+    final maxScore =
+        items.fold<int>(0, (m, r) => r.totalScore > m ? r.totalScore : m);
     final maxY = (maxScore < 10 ? 10 : maxScore).toDouble();
+    final gridColor = theme.colorScheme.outline.withValues(alpha: 0.35);
+    final labelStyle = TextStyle(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+    );
 
     return SizedBox(
       height: 280,
@@ -23,7 +39,15 @@ class ProjectsBarChart extends StatelessWidget {
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
           maxY: maxY * 1.1,
-          gridData: const FlGridData(show: true, drawVerticalLine: false),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: gridColor,
+              strokeWidth: 1,
+              dashArray: const [4, 4],
+            ),
+          ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
@@ -31,27 +55,28 @@ class ProjectsBarChart extends StatelessWidget {
                 showTitles: true,
                 reservedSize: 32,
                 interval: maxY / 4,
-                getTitlesWidget: (v, _) => Text(v.toInt().toString(),
-                    style: theme.textTheme.bodySmall),
+                getTitlesWidget: (v, _) =>
+                    Text(v.toInt().toString(), style: labelStyle),
               ),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 36,
+                reservedSize: 40,
                 getTitlesWidget: (v, meta) {
                   final i = v.toInt();
-                  if (i < 0 || i >= items.length) return const SizedBox.shrink();
+                  if (i < 0 || i >= items.length) {
+                    return const SizedBox.shrink();
+                  }
                   return Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 6),
                     child: Transform.rotate(
                       angle: -0.5,
-                      child: Text(
-                        items[i].code,
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      child: Text(items[i].code, style: labelStyle),
                     ),
                   );
                 },
@@ -66,20 +91,31 @@ class ProjectsBarChart extends StatelessWidget {
                   BarChartRodData(
                     toY: items[i].totalScore.toDouble(),
                     width: 14,
-                    color: _colorForStatus(items[i].status, theme),
-                    borderRadius: BorderRadius.circular(4),
+                    gradient: _gradientForStatus(items[i].status),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(6),
+                      topRight: Radius.circular(6),
+                    ),
                   ),
                 ],
               ),
           ],
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
-              tooltipMargin: 6,
+              tooltipMargin: 8,
+              tooltipPadding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 8),
+              getTooltipColor: (_) => Vistar.surface2,
               getTooltipItem: (group, _, rod, _) {
                 final row = items[group.x];
                 return BarTooltipItem(
-                  '${row.code}\n${row.totalScore} marks\n${row.status}',
-                  TextStyle(color: theme.colorScheme.onInverseSurface),
+                  '${row.code}\n${row.totalScore} marks  •  ${row.status}',
+                  const TextStyle(
+                    color: Vistar.txt,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                    height: 1.4,
+                  ),
                 );
               },
             ),
@@ -89,13 +125,40 @@ class ProjectsBarChart extends StatelessWidget {
     );
   }
 
-  Color _colorForStatus(String status, ThemeData theme) {
-    return switch (status) {
-      'APPROVED' => theme.colorScheme.primary,
-      'SUBMITTED' => theme.colorScheme.secondary,
-      'REJECTED' => theme.colorScheme.error,
-      'DRAFT' => theme.colorScheme.tertiary,
-      _ => theme.colorScheme.outlineVariant,
-    };
+  LinearGradient _gradientForStatus(String status) {
+    switch (status) {
+      case 'APPROVED':
+        return Vistar.ribbon;
+      case 'SUBMITTED':
+        return LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Vistar.info.withValues(alpha: 0.6), Vistar.info],
+        );
+      case 'REJECTED':
+        return LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Vistar.bad.withValues(alpha: 0.6), Vistar.bad],
+        );
+      case 'DRAFT':
+        return LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Vistar.txt3.withValues(alpha: 0.4),
+            Vistar.txt3.withValues(alpha: 0.7),
+          ],
+        );
+      default:
+        return LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Vistar.surface3,
+            Vistar.surface3.withValues(alpha: 0.6),
+          ],
+        );
+    }
   }
 }

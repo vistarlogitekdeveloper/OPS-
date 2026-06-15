@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/api_error.dart';
+import '../../../../core/theme/vistar.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../auth/application/auth_controller.dart';
@@ -21,7 +23,7 @@ class UsersListScreen extends ConsumerWidget {
     final currentUser = ref.watch(authControllerProvider).user;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -40,14 +42,15 @@ class UsersListScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               _RoleFilter(onChanged: controller.setRoleFilter),
               const SizedBox(width: 12),
-              FilledButton.icon(
+              RibbonButton(
+                small: true,
                 onPressed: () => _openCreate(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('New user'),
+                icon: Icons.add,
+                label: 'New user',
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Expanded(
             child: AsyncValueView(
               value: async,
@@ -55,10 +58,11 @@ class UsersListScreen extends ConsumerWidget {
               data: (page) => RefreshIndicator(
                 onRefresh: controller.refresh,
                 child: page.items.isEmpty
-                    ? const Center(child: Text('No users match the current filters.'))
+                    ? const _Empty()
                     : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 16),
                         itemCount: page.items.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, i) {
                           final u = page.items[i];
                           final isSelf = currentUser?.id == u.id;
@@ -98,7 +102,8 @@ class UsersListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _openEdit(BuildContext context, WidgetRef ref, AuthUser u) async {
+  Future<void> _openEdit(
+      BuildContext context, WidgetRef ref, AuthUser u) async {
     final updated = await showDialog<bool>(
       context: context,
       builder: (_) => UserFormDialog(initial: u),
@@ -108,23 +113,27 @@ class UsersListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _setPassword(BuildContext context, WidgetRef ref, AuthUser u) async {
+  Future<void> _setPassword(
+      BuildContext context, WidgetRef ref, AuthUser u) async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => SetPasswordDialog(userId: u.id, username: u.username),
     );
     if (ok == true) {
-      messenger.showSnackBar(SnackBar(content: Text('Password updated for ${u.username}.')));
+      messenger.showSnackBar(
+          SnackBar(content: Text('Password updated for ${u.username}.')));
     }
   }
 
-  Future<void> _deactivate(BuildContext context, WidgetRef ref, AuthUser u) async {
+  Future<void> _deactivate(
+      BuildContext context, WidgetRef ref, AuthUser u) async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await confirmAction(
       context,
       title: 'Deactivate user?',
-      message: '${u.name} (${u.username}) won\'t be able to log in. Existing sessions will be revoked.',
+      message:
+          '${u.name} (${u.username}) won\'t be able to log in. Existing sessions will be revoked.',
       confirmLabel: 'Deactivate',
       destructive: true,
     );
@@ -136,6 +145,21 @@ class UsersListScreen extends ConsumerWidget {
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(ApiError.from(e).message)));
     }
+  }
+}
+
+PillKind _pillForRole(UserRole r) {
+  switch (r) {
+    case UserRole.admin:
+      return PillKind.pink;
+    case UserRole.manager:
+      return PillKind.info;
+    case UserRole.opsExcellence:
+      return PillKind.violet;
+    case UserRole.siteUser:
+      return PillKind.amber;
+    case UserRole.unknown:
+      return PillKind.neutral;
   }
 }
 
@@ -160,7 +184,8 @@ class _RoleFilterState extends State<_RoleFilter> {
         DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
         DropdownMenuItem(value: UserRole.manager, child: Text('Manager')),
         DropdownMenuItem(value: UserRole.siteUser, child: Text('Site User')),
-        DropdownMenuItem(value: UserRole.opsExcellence, child: Text('Ops Excellence')),
+        DropdownMenuItem(
+            value: UserRole.opsExcellence, child: Text('Ops Excellence')),
       ],
       onChanged: (v) {
         setState(() => _selected = v);
@@ -187,58 +212,61 @@ class _UserRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: user.isActive
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surfaceContainerHighest,
-        child: Text(
-          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: TextStyle(
-            color: user.isActive
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      title: Text(user.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text('${user.username} · ${user.email}',
-          maxLines: 1, overflow: TextOverflow.ellipsis),
-      // Role chip lives in `trailing` so its left edge is consistent across
-      // rows — when it was in `title`, the chip moved horizontally based on
-      // how wide trailing was on that row (e.g. when "Inactive" was present).
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    return VistarCard(
+      onTap: onEdit,
+      glow: true,
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      child: Row(
         children: [
-          // Fixed-width slot for the role chip — must be wide enough for the
-          // longest label ("Ops Excellence" ≈ 130px). Right-aligned so every
-          // chip's right edge lines up across rows regardless of label length.
+          VistarAvatar(label: user.name, size: 44, gradient: user.isActive),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  user.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${user.username} · ${user.email}',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          // Fixed-width slot for the role pill so right edges align across rows.
           SizedBox(
             width: 144,
             child: Align(
               alignment: Alignment.centerRight,
-              child: Chip(
-                label: Text(roleLabel(user.role)),
-                visualDensity: VisualDensity.compact,
-                backgroundColor: theme.colorScheme.secondaryContainer,
-                labelStyle: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+              child: RibbonPill(
+                label: roleLabel(user.role).toUpperCase(),
+                kind: _pillForRole(user.role),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          // Reserve a fixed slot for the optional Inactive chip so the icon
-          // column stays put whether or not the user is active.
+          // Reserve a slot for the optional Inactive pill so the icon column stays put.
           SizedBox(
             width: 96,
             child: !user.isActive
-                ? Align(
+                ? const Align(
                     alignment: Alignment.centerRight,
-                    child: Chip(
-                      label: const Text('Inactive'),
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                    ),
+                    child: RibbonPill(
+                        label: 'INACTIVE', kind: PillKind.neutral),
                   )
                 : null,
           ),
@@ -259,12 +287,37 @@ class _UserRow extends StatelessWidget {
             icon: const Icon(Icons.delete_outline),
             color: onDeactivate == null
                 ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
-                : theme.colorScheme.error,
+                : Vistar.bad,
             onPressed: onDeactivate,
           ),
         ],
       ),
-      onTap: onEdit,
+    );
+  }
+}
+
+class _Empty extends StatelessWidget {
+  const _Empty();
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: VistarCard(
+        cornerS: true,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.people_outline, size: 36, color: theme.hintColor),
+            const SizedBox(height: 12),
+            Text(
+              'No users match the current filters.',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -283,12 +336,19 @@ class _PageFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('$total total · page $page / $pageCount'),
+          Text(
+            '$total total · page $page / $pageCount',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
           Row(
             children: [
               IconButton(

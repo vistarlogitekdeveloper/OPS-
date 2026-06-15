@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/theme/vistar.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../application/audit_controller.dart';
 import '../data/audit_repository.dart';
@@ -32,7 +34,7 @@ class _AuditListScreenState extends ConsumerState<AuditListScreen> {
     final controller = ref.read(auditListControllerProvider.notifier);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -41,10 +43,15 @@ class _AuditListScreenState extends ConsumerState<AuditListScreen> {
             entityTypeCtrl: _entityTypeCtrl,
             userIdCtrl: _userIdCtrl,
             onApply: () => controller.setFilters(AuditFilters(
-              action: _actionCtrl.text.trim().isEmpty ? null : _actionCtrl.text.trim(),
-              entityType:
-                  _entityTypeCtrl.text.trim().isEmpty ? null : _entityTypeCtrl.text.trim(),
-              userId: _userIdCtrl.text.trim().isEmpty ? null : _userIdCtrl.text.trim(),
+              action: _actionCtrl.text.trim().isEmpty
+                  ? null
+                  : _actionCtrl.text.trim(),
+              entityType: _entityTypeCtrl.text.trim().isEmpty
+                  ? null
+                  : _entityTypeCtrl.text.trim(),
+              userId: _userIdCtrl.text.trim().isEmpty
+                  ? null
+                  : _userIdCtrl.text.trim(),
             )),
             onClear: () {
               _actionCtrl.clear();
@@ -53,7 +60,7 @@ class _AuditListScreenState extends ConsumerState<AuditListScreen> {
               controller.setFilters(const AuditFilters());
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Expanded(
             child: AsyncValueView(
               value: async,
@@ -61,11 +68,13 @@ class _AuditListScreenState extends ConsumerState<AuditListScreen> {
               data: (page) => RefreshIndicator(
                 onRefresh: controller.refresh,
                 child: page.items.isEmpty
-                    ? const Center(child: Text('No audit entries match the filters.'))
+                    ? const _Empty()
                     : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 16),
                         itemCount: page.items.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, i) => _AuditRow(entry: page.items[i]),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) =>
+                            _AuditRow(entry: page.items[i]),
                       ),
               ),
             ),
@@ -100,8 +109,8 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(
@@ -137,10 +146,11 @@ class _FilterBar extends StatelessWidget {
             onSubmitted: (_) => onApply(),
           ),
         ),
-        FilledButton.icon(
+        RibbonButton(
+          small: true,
           onPressed: onApply,
-          icon: const Icon(Icons.filter_alt_outlined),
-          label: const Text('Apply'),
+          icon: Icons.filter_alt_outlined,
+          label: 'Apply',
         ),
         OutlinedButton(onPressed: onClear, child: const Text('Clear')),
       ],
@@ -157,17 +167,90 @@ class _AuditRow extends StatelessWidget {
     final theme = Theme.of(context);
     final fmt = DateFormat('yyyy-MM-dd HH:mm:ss');
     final status = entry.metadata?['status'];
-    return ListTile(
-      title: Text(entry.action, style: theme.textTheme.bodyMedium),
-      subtitle: Text(
-        [
-          fmt.format(entry.timestamp.toLocal()),
-          if (entry.username != null) 'by ${entry.username}',
-          'type: ${entry.entityType}',
-          if (status != null) 'status: $status',
-          if (entry.ipAddress != null) 'ip: ${entry.ipAddress}',
-        ].join(' · '),
-        style: theme.textTheme.bodySmall,
+    final isError = entry.action.toLowerCase().contains('error') ||
+        entry.action.toLowerCase().contains('failure') ||
+        (status is String && status.toLowerCase() == 'error');
+
+    return VistarCard(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: (isError ? Vistar.bad : Vistar.violet).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isError ? Icons.error_outline : Icons.history,
+              size: 18,
+              color: isError ? Vistar.bad : Vistar.violet,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.action,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    fmt.format(entry.timestamp.toLocal()),
+                    if (entry.username != null) 'by ${entry.username}',
+                    'type: ${entry.entityType}',
+                    if (status != null) 'status: $status',
+                    if (entry.ipAddress != null) 'ip: ${entry.ipAddress}',
+                  ].join(' · '),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Empty extends StatelessWidget {
+  const _Empty();
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: VistarCard(
+        cornerS: true,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.history_outlined, size: 36, color: theme.hintColor),
+            const SizedBox(height: 12),
+            Text(
+              'No audit entries match the filters.',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -187,12 +270,19 @@ class _PageFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('$total total · page $page / $pageCount'),
+          Text(
+            '$total total · page $page / $pageCount',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
           Row(
             children: [
               IconButton(

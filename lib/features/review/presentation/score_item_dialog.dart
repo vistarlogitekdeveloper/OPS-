@@ -4,11 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../../core/errors/api_error.dart';
+import '../../../core/theme/vistar.dart';
+import '../../../core/vistar/widgets.dart';
 import '../../submissions/data/submission_models.dart';
 import '../../submissions/data/submissions_repository.dart';
 
 class ScoreItemDialog extends ConsumerStatefulWidget {
-  const ScoreItemDialog({super.key, required this.submissionId, required this.item});
+  const ScoreItemDialog({
+    super.key,
+    required this.submissionId,
+    required this.item,
+  });
   final String submissionId;
   final SubmissionItem item;
 
@@ -23,6 +29,7 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final cat = widget.item.category;
     final max = cat?.maxMarks ?? 100;
     return AlertDialog(
@@ -38,8 +45,30 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Category max: $max'),
-              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'CATEGORY MAX',
+                    style: TextStyle(
+                      color: theme.hintColor,
+                      fontSize: 10.5,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  RibbonText(
+                    '$max',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                      letterSpacing: -0.4,
+                      height: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               FormBuilderTextField(
                 name: 'awardedMarks',
                 decoration: const InputDecoration(labelText: 'Awarded marks'),
@@ -53,8 +82,8 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
                 ]),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                const SizedBox(height: 10),
+                _ErrorChip(message: _error!),
               ],
             ],
           ),
@@ -65,11 +94,11 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        RibbonButton(
+          small: true,
           onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Save'),
+          icon: _busy ? null : Icons.check,
+          label: _busy ? 'Saving…' : 'Save',
         ),
       ],
     );
@@ -98,5 +127,38 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
         _error = ApiError.from(e).message;
       });
     }
+  }
+}
+
+class _ErrorChip extends StatelessWidget {
+  const _ErrorChip({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Vistar.bad.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(Vistar.rSm),
+        border: Border.all(color: Vistar.bad.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Vistar.bad, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Vistar.bad,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

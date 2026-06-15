@@ -4,11 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../../core/errors/api_error.dart';
+import '../../../core/theme/vistar.dart';
+import '../../../core/vistar/widgets.dart';
 import '../../submissions/data/submission_models.dart';
 import '../../submissions/data/submissions_repository.dart';
 
 class DecisionDialog extends ConsumerStatefulWidget {
-  const DecisionDialog({super.key, required this.submission, required this.approve});
+  const DecisionDialog({
+    super.key,
+    required this.submission,
+    required this.approve,
+  });
   final Submission submission;
   final bool approve;
 
@@ -36,15 +42,19 @@ class _DecisionDialogState extends ConsumerState<DecisionDialog> {
             children: [
               Text(
                 approve
-                    ? 'All 10 items will be marked Approved. The Ops Excellence team can then allocate marks.'
+                    ? 'All items will be marked Approved. The Ops Excellence team can then allocate marks.'
                     : 'All items will be marked Rejected. The site user can re-upload and resubmit.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               FormBuilderTextField(
                 name: 'comment',
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: approve ? 'Comment (optional)' : 'Reason for rejection',
+                  labelText:
+                      approve ? 'Comment (optional)' : 'Reason for rejection',
                 ),
                 validator: approve
                     ? FormBuilderValidators.maxLength(2000)
@@ -54,8 +64,8 @@ class _DecisionDialogState extends ConsumerState<DecisionDialog> {
                       ]),
               ),
               if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                const SizedBox(height: 10),
+                _ErrorChip(message: _error!),
               ],
             ],
           ),
@@ -66,18 +76,33 @@ class _DecisionDialogState extends ConsumerState<DecisionDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          style: approve
-              ? null
-              : FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                ),
-          onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(approve ? 'Approve' : 'Reject'),
-        ),
+        if (approve)
+          RibbonButton(
+            small: true,
+            onPressed: _busy ? null : _submit,
+            icon: _busy ? null : Icons.check,
+            label: _busy ? 'Approving…' : 'Approve',
+          )
+        else
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: Vistar.bad,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            ),
+            onPressed: _busy ? null : _submit,
+            icon: _busy
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.close),
+            label: Text(_busy ? 'Rejecting…' : 'Reject'),
+          ),
       ],
     );
   }
@@ -105,5 +130,38 @@ class _DecisionDialogState extends ConsumerState<DecisionDialog> {
         _error = ApiError.from(e).message;
       });
     }
+  }
+}
+
+class _ErrorChip extends StatelessWidget {
+  const _ErrorChip({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Vistar.bad.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(Vistar.rSm),
+        border: Border.all(color: Vistar.bad.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Vistar.bad, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Vistar.bad,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

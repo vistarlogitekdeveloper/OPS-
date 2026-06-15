@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../../../core/errors/api_error.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../../../categories/data/categories_repository.dart';
 import '../../../categories/data/category_model.dart';
 
@@ -131,11 +132,11 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        RibbonButton(
+          small: true,
           onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(_editing ? 'Save' : 'Create'),
+          icon: _busy ? null : Icons.check,
+          label: _busy ? 'Saving…' : (_editing ? 'Save' : 'Create'),
         ),
       ],
     );

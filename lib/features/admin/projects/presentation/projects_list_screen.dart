@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/api_error.dart';
+import '../../../../core/theme/vistar.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../projects/data/project_model.dart';
@@ -18,7 +20,7 @@ class ProjectsListScreen extends ConsumerWidget {
     final controller = ref.read(projectsListControllerProvider.notifier);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -35,14 +37,15 @@ class ProjectsListScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton.icon(
+              RibbonButton(
+                small: true,
                 onPressed: () => _openCreate(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('New project'),
+                icon: Icons.add,
+                label: 'New project',
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Expanded(
             child: AsyncValueView(
               value: async,
@@ -52,12 +55,15 @@ class ProjectsListScreen extends ConsumerWidget {
                 child: page.items.isEmpty
                     ? const _Empty()
                     : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 16),
                         itemCount: page.items.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, i) => _ProjectRow(
                           project: page.items[i],
-                          onEdit: () => _openEdit(context, ref, page.items[i]),
-                          onDeactivate: () => _deactivate(context, ref, page.items[i]),
+                          onEdit: () =>
+                              _openEdit(context, ref, page.items[i]),
+                          onDeactivate: () =>
+                              _deactivate(context, ref, page.items[i]),
                         ),
                       ),
               ),
@@ -85,7 +91,8 @@ class ProjectsListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _openEdit(BuildContext context, WidgetRef ref, Project p) async {
+  Future<void> _openEdit(
+      BuildContext context, WidgetRef ref, Project p) async {
     final updated = await showDialog<bool>(
       context: context,
       builder: (ctx) => ProjectFormDialog(initial: p),
@@ -95,12 +102,14 @@ class ProjectsListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _deactivate(BuildContext context, WidgetRef ref, Project p) async {
+  Future<void> _deactivate(
+      BuildContext context, WidgetRef ref, Project p) async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await confirmAction(
       context,
       title: 'Deactivate project?',
-      message: '"${p.name}" (${p.code}) will be hidden from new submissions. History is preserved.',
+      message:
+          '"${p.name}" (${p.code}) will be hidden from new submissions. History is preserved.',
       confirmLabel: 'Deactivate',
       destructive: true,
     );
@@ -116,7 +125,11 @@ class ProjectsListScreen extends ConsumerWidget {
 }
 
 class _ProjectRow extends StatelessWidget {
-  const _ProjectRow({required this.project, required this.onEdit, required this.onDeactivate});
+  const _ProjectRow({
+    required this.project,
+    required this.onEdit,
+    required this.onDeactivate,
+  });
   final Project project;
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
@@ -124,42 +137,78 @@ class _ProjectRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: project.isActive
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surfaceContainerHighest,
-        child: Icon(
-          project.isActive ? Icons.business : Icons.block,
-          color: project.isActive
-              ? theme.colorScheme.onPrimaryContainer
-              : theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-      title: Text(project.name),
-      subtitle: Text([project.code, if (project.location != null) project.location].join(' · ')),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    return VistarCard(
+      onTap: onEdit,
+      glow: true,
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      child: Row(
         children: [
-          if (!project.isActive)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Chip(
-                label: const Text('Inactive'),
-                visualDensity: VisualDensity.compact,
-                backgroundColor: theme.colorScheme.surfaceContainerHigh,
-              ),
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: project.isActive ? Vistar.ribbon : null,
+              color: project.isActive
+                  ? null
+                  : theme.colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
             ),
-          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: onEdit),
+            child: Icon(
+              project.isActive ? Icons.business : Icons.block,
+              size: 20,
+              color: project.isActive
+                  ? Colors.white
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  project.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [project.code, if (project.location != null) project.location]
+                      .join(' · '),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          if (!project.isActive)
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: RibbonPill(label: 'INACTIVE', kind: PillKind.neutral),
+            ),
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: onEdit,
+          ),
           if (project.isActive)
             IconButton(
-              icon: const Icon(Icons.delete_outline),
-              color: theme.colorScheme.error,
+              tooltip: 'Deactivate',
+              icon: const Icon(Icons.delete_outline, color: Vistar.bad),
               onPressed: onDeactivate,
             ),
         ],
       ),
-      onTap: onEdit,
     );
   }
 }
@@ -168,7 +217,41 @@ class _Empty extends StatelessWidget {
   const _Empty();
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('No projects yet. Tap "New project" to add one.'));
+    final theme = Theme.of(context);
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 40),
+        Center(
+          child: VistarCard(
+            cornerS: true,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.business_outlined,
+                    size: 36, color: theme.hintColor),
+                const SizedBox(height: 12),
+                Text(
+                  'No projects yet.',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap "New project" to add one.',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -186,12 +269,19 @@ class _PageFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('$total total · page $page / $pageCount'),
+          Text(
+            '$total total · page $page / $pageCount',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
           Row(
             children: [
               IconButton(

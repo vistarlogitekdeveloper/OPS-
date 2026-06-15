@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/api_error.dart';
 import '../../../core/platform/download_helper.dart';
+import '../../../core/vistar/widgets.dart';
 import '../data/exports_repository.dart';
 
 class ExportButtons extends ConsumerStatefulWidget {
@@ -20,22 +21,20 @@ class _ExportButtonsState extends ConsumerState<ExportButtons> {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        FilledButton.tonalIcon(
+        RibbonButton(
+          small: true,
           onPressed: _busyPdf ? null : () => _doExport(pdf: true),
-          icon: _busyPdf
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.picture_as_pdf_outlined),
-          label: const Text('Export PDF'),
+          icon: Icons.picture_as_pdf_outlined,
+          label: _busyPdf ? 'Saving PDF…' : 'Export PDF',
         ),
-        FilledButton.tonalIcon(
+        RibbonButton(
+          small: true,
           onPressed: _busyXlsx ? null : () => _doExport(pdf: false),
-          icon: _busyXlsx
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.table_chart_outlined),
-          label: const Text('Export Excel'),
+          icon: Icons.table_chart_outlined,
+          label: _busyXlsx ? 'Saving Excel…' : 'Export Excel',
         ),
       ],
     );
@@ -55,11 +54,14 @@ class _ExportButtonsState extends ConsumerState<ExportButtons> {
       final bytes = pdf
           ? await repo.monthlyPdf(month: widget.month)
           : await repo.monthlyXlsx(month: widget.month);
-      final filename = pdf ? 'opsapp-${widget.month}.pdf' : 'opsapp-${widget.month}.xlsx';
+      final filename = pdf
+          ? 'opsapp-${widget.month}.pdf'
+          : 'opsapp-${widget.month}.xlsx';
       final mime = pdf
           ? 'application/pdf'
           : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      final where = await saveBytes(bytes: bytes, filename: filename, mimeType: mime);
+      final where =
+          await saveBytes(bytes: bytes, filename: filename, mimeType: mime);
       messenger.showSnackBar(SnackBar(content: Text('Saved $filename to $where.')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(ApiError.from(e).message)));

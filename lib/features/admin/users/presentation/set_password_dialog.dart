@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../../../core/errors/api_error.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../data/users_repository.dart';
 
 class SetPasswordDialog extends ConsumerStatefulWidget {
@@ -56,11 +57,11 @@ class _SetPasswordDialogState extends ConsumerState<SetPasswordDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        RibbonButton(
+          small: true,
           onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Set password'),
+          icon: _busy ? null : Icons.key,
+          label: _busy ? 'Saving…' : 'Set password',
         ),
       ],
     );

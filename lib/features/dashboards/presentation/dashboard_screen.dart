@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/responsive/breakpoints.dart';
+import '../../../core/theme/vistar.dart';
+import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
@@ -34,19 +35,72 @@ class DashboardScreen extends ConsumerWidget {
     final role = ref.watch(authControllerProvider).user?.role ?? UserRole.unknown;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Row(
+          children: [
+            Image.asset(
+              Vistar.smarkAsset,
+              width: 32,
+              height: 32,
+              cacheWidth: 96,
+              filterQuality: FilterQuality.medium,
+            ),
+            const SizedBox(width: 10),
+            const Text('Dashboard'),
+          ],
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
       ),
-      body: switch (role) {
-        UserRole.siteUser => const _SiteUserDashboard(),
-        UserRole.manager => const _ManagerDashboard(),
-        UserRole.admin || UserRole.opsExcellence => const _AdminDashboard(),
-        _ => const Center(child: Text('No dashboard for this role.')),
-      },
+      body: AmbientBackground(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1280),
+              child: switch (role) {
+                UserRole.siteUser => const _SiteUserDashboard(),
+                UserRole.manager => const _ManagerDashboard(),
+                UserRole.admin ||
+                UserRole.opsExcellence =>
+                  const _AdminDashboard(),
+                _ => const _NoDashboard(),
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoDashboard extends StatelessWidget {
+  const _NoDashboard();
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: VistarCard(
+        cornerS: true,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.insights_outlined, size: 36, color: theme.hintColor),
+            const SizedBox(height: 12),
+            Text(
+              'No dashboard for this role.',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -64,20 +118,38 @@ class _SiteUserDashboard extends ConsumerWidget {
       onRetry: () => ref.invalidate(scorecardProvider),
       data: (sc) {
         if (sc.cycles.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('No assigned projects yet.', textAlign: TextAlign.center),
+          return Center(
+            child: VistarCard(
+              cornerS: true,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.business_outlined,
+                      size: 36, color: Theme.of(context).hintColor),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No assigned projects yet.',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
+              ),
             ),
           );
         }
         return RefreshIndicator(
           onRefresh: () async => ref.invalidate(scorecardProvider),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
               for (final c in sc.cycles)
-                _ScorecardCard(cycle: c),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ScorecardCard(cycle: c),
+                ),
             ],
           ),
         );
@@ -93,26 +165,69 @@ class _ScorecardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${cycle.code} — ${cycle.name}', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final m in cycle.months)
-                    _MonthChip(month: m),
-                ],
+    return VistarCard(
+      cornerS: true,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: Vistar.ribbon,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  cycle.code.length <= 4
+                      ? cycle.code
+                      : cycle.code.substring(0, 4),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      cycle.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    Text(
+                      cycle.code,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final m in cycle.months) _MonthChip(month: m),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -125,14 +240,31 @@ class _MonthChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final (bg, fg) = switch (month.status) {
-      null => (scheme.surfaceContainerHigh, scheme.onSurfaceVariant),
-      SubmissionStatus.draft => (scheme.surfaceContainerHigh, scheme.onSurface),
-      SubmissionStatus.submitted => (scheme.secondaryContainer, scheme.onSecondaryContainer),
-      SubmissionStatus.approved => (scheme.primaryContainer, scheme.onPrimaryContainer),
-      SubmissionStatus.rejected => (scheme.errorContainer, scheme.onErrorContainer),
-      SubmissionStatus.unknown => (scheme.surfaceContainerHigh, scheme.onSurface),
+      null => (
+        theme.colorScheme.surfaceContainerHigh,
+        theme.colorScheme.onSurfaceVariant,
+      ),
+      SubmissionStatus.draft => (
+        Vistar.txt3.withValues(alpha: 0.18),
+        Vistar.txt2,
+      ),
+      SubmissionStatus.submitted => (
+        Vistar.info.withValues(alpha: 0.16),
+        Vistar.info,
+      ),
+      SubmissionStatus.approved => (
+        Vistar.ok.withValues(alpha: 0.16),
+        Vistar.ok,
+      ),
+      SubmissionStatus.rejected => (
+        Vistar.bad.withValues(alpha: 0.16),
+        Vistar.bad,
+      ),
+      SubmissionStatus.unknown => (
+        theme.colorScheme.surfaceContainerHigh,
+        theme.colorScheme.onSurfaceVariant,
+      ),
     };
     final label = month.status == null
         ? '—'
@@ -143,17 +275,33 @@ class _MonthChip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        width: 64,
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_short(month.month), style: theme.textTheme.bodySmall),
+            Text(
+              _short(month.month),
+              style: TextStyle(
+                color: theme.hintColor,
+                fontSize: 10.5,
+                letterSpacing: 0.6,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: fg)),
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
@@ -181,13 +329,13 @@ class _ManagerDashboard extends ConsumerWidget {
         ref.invalidate(monthlyTrendProvider(null));
       },
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           Align(
             alignment: Alignment.centerRight,
             child: ExportButtons(month: _currentMonth()),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _SectionCard(
             title: 'Compliance — your projects',
             subtitle: '6-month window, % of items approved per cycle',
@@ -213,7 +361,7 @@ class _ManagerDashboard extends ConsumerWidget {
   }
 }
 
-// ─── Admin / Ops Excellence — full grid of charts ───────────────────────────
+// ─── Admin / Ops Excellence — full grid ─────────────────────────────────────
 
 class _AdminDashboard extends ConsumerStatefulWidget {
   const _AdminDashboard();
@@ -226,11 +374,13 @@ class _AdminDashboardState extends ConsumerState<_AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final range = ComplianceRange(from: _monthsAgo(5), to: _currentMonth());
     final scoresAsync = ref.watch(projectScoresProvider(_month));
     final trendAsync = ref.watch(monthlyTrendProvider(null));
     final complianceAsync = ref.watch(complianceProvider(range));
-    final cols = context.isDesktopOrLarger ? 2 : 1;
+    // Bar chart with up to 25 rotated site labels needs full width — stack vertically.
+    const cols = 1;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -239,28 +389,45 @@ class _AdminDashboardState extends ConsumerState<_AdminDashboard> {
         ref.invalidate(complianceProvider(range));
       },
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           Wrap(
             spacing: 12,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Month:', style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: _pickMonth,
-                    child: Text(_pretty(_month)),
+              InkWell(
+                onTap: _pickMonth,
+                borderRadius: BorderRadius.circular(Vistar.rSm),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(Vistar.rSm),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_today_outlined,
+                          size: 14, color: Vistar.pink),
+                      const SizedBox(width: 8),
+                      Text(
+                        _pretty(_month),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               ExportButtons(month: _month),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _Grid(
             columns: cols,
             children: [
@@ -331,7 +498,11 @@ class _AdminDashboardState extends ConsumerState<_AdminDashboard> {
 // ─── Shared building blocks ─────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.subtitle, required this.child});
+  const _SectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
   final String title;
   final String subtitle;
   final Widget child;
@@ -339,20 +510,25 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium),
-            Text(subtitle,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+    return VistarCard(
+      cornerS: true,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(title),
+          Padding(
+            padding: const EdgeInsets.only(left: 14, bottom: 12),
+            child: Text(
+              subtitle,
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 12.5,
+              ),
+            ),
+          ),
+          child,
+        ],
       ),
     );
   }

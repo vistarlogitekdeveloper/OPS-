@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../../../core/errors/api_error.dart';
+import '../../../../core/vistar/widgets.dart';
 import '../../../projects/data/project_model.dart';
 import '../../../projects/data/projects_repository.dart';
 
@@ -90,11 +91,11 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
           onPressed: _busy ? null : () => Navigator.of(context).pop(false),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        RibbonButton(
+          small: true,
           onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(_editing ? 'Save' : 'Create'),
+          icon: _busy ? null : Icons.check,
+          label: _busy ? 'Saving…' : (_editing ? 'Save' : 'Create'),
         ),
       ],
     );

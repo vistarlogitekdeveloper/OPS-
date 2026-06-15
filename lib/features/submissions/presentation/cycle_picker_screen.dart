@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
@@ -38,73 +39,85 @@ class _CyclePickerScreenState extends ConsumerState<CyclePickerScreen> {
     final projectsAsync = ref.watch(_siteProjectsProvider);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text('New / open submission'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: AsyncValueView(
-              value: projectsAsync,
-              data: (projects) {
-                if (projects.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No projects assigned. Ask an admin to assign you a site.',
-                      style: theme.textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
-                if (_projectId == null && projects.length == 1) {
-                  _projectId = projects.first.id;
-                }
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('Choose a project and month',
-                            style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          initialValue: _projectId,
-                          decoration: const InputDecoration(labelText: 'Project'),
-                          items: [
-                            for (final p in projects)
-                              DropdownMenuItem(
-                                value: p.id,
-                                child: Text('${p.code} — ${p.name}'),
-                              ),
-                          ],
-                          onChanged: (v) => setState(() => _projectId = v),
+      body: AmbientBackground(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: AsyncValueView(
+                  value: projectsAsync,
+                  data: (projects) {
+                    if (projects.isEmpty) {
+                      return VistarCard(
+                        cornerS: true,
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No projects assigned. Ask an admin to assign you a site.',
+                          style: theme.textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Month'),
-                          subtitle: Text(DateFormat.yMMMM().format(_month)),
-                          trailing: const Icon(Icons.calendar_today_outlined),
-                          onTap: _pickMonth,
-                        ),
-                        const SizedBox(height: 24),
-                        FilledButton(
-                          onPressed: _projectId == null ? null : _open,
-                          child: const Text('Open'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                      );
+                    }
+                    if (_projectId == null && projects.length == 1) {
+                      _projectId = projects.first.id;
+                    }
+                    return VistarCard(
+                      cornerS: true,
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SectionTitle('Choose a project and month'),
+                          const SizedBox(height: 4),
+                          DropdownButtonFormField<String>(
+                            initialValue: _projectId,
+                            decoration:
+                                const InputDecoration(labelText: 'Project'),
+                            items: [
+                              for (final p in projects)
+                                DropdownMenuItem(
+                                  value: p.id,
+                                  child: Text('${p.code} — ${p.name}'),
+                                ),
+                            ],
+                            onChanged: (v) => setState(() => _projectId = v),
+                          ),
+                          const SizedBox(height: 14),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Month'),
+                            subtitle: Text(DateFormat.yMMMM().format(_month)),
+                            trailing:
+                                const Icon(Icons.calendar_today_outlined),
+                            onTap: _pickMonth,
+                          ),
+                          const SizedBox(height: 18),
+                          RibbonButton(
+                            onPressed: _projectId == null ? null : _open,
+                            label: 'Open',
+                            icon: Icons.arrow_forward,
+                            expand: true,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ),
