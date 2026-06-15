@@ -1,4 +1,4 @@
-enum FileTypeCode { pdf, ppt, excel, jpeg }
+enum FileTypeCode { pdf, ppt, excel, jpeg, word }
 
 FileTypeCode fileTypeFromWire(String raw) {
   switch (raw) {
@@ -10,6 +10,8 @@ FileTypeCode fileTypeFromWire(String raw) {
       return FileTypeCode.excel;
     case 'JPEG':
       return FileTypeCode.jpeg;
+    case 'WORD':
+      return FileTypeCode.word;
     default:
       throw ArgumentError('Unknown FileTypeCode: $raw');
   }
@@ -20,6 +22,7 @@ String fileTypeToWire(FileTypeCode t) => switch (t) {
       FileTypeCode.ppt => 'PPT',
       FileTypeCode.excel => 'EXCEL',
       FileTypeCode.jpeg => 'JPEG',
+      FileTypeCode.word => 'WORD',
     };
 
 String fileTypeLabel(FileTypeCode t) => switch (t) {
@@ -27,6 +30,7 @@ String fileTypeLabel(FileTypeCode t) => switch (t) {
       FileTypeCode.ppt => 'PowerPoint',
       FileTypeCode.excel => 'Excel',
       FileTypeCode.jpeg => 'JPEG',
+      FileTypeCode.word => 'Word',
     };
 
 class ReportCategory {
