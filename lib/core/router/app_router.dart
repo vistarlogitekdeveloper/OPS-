@@ -11,6 +11,7 @@ import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/data/auth_models.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/dashboards/presentation/dashboard_screen.dart';
+import '../../features/dashboards/presentation/site_detail_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/review/presentation/review_detail_screen.dart';
 import '../../features/review/presentation/review_queue_screen.dart';
@@ -76,6 +77,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboards',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/sites/:id',
+        builder: (context, state) =>
+            SiteDetailScreen(projectId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/settings',

@@ -1,4 +1,91 @@
+import '../../projects/data/project_model.dart';
 import '../../submissions/data/submission_models.dart';
+
+/// Per-site dashboard payload (`GET /dashboards/site/:projectId`).
+class SiteTrendPoint {
+  const SiteTrendPoint({required this.month, required this.totalScore, this.status});
+  final String month;
+  final int totalScore;
+  final SubmissionStatus? status;
+
+  factory SiteTrendPoint.fromJson(Map<String, dynamic> j) => SiteTrendPoint(
+        month: j['month'] as String,
+        totalScore: j['totalScore'] as int? ?? 0,
+        status: j['status'] == null ? null : submissionStatusFromWire(j['status'] as String),
+      );
+}
+
+class SiteCompliancePoint {
+  const SiteCompliancePoint({required this.month, required this.percent});
+  final String month;
+  final int? percent;
+
+  factory SiteCompliancePoint.fromJson(Map<String, dynamic> j) => SiteCompliancePoint(
+        month: j['month'] as String,
+        percent: j['percent'] as int?,
+      );
+}
+
+class SiteCategoryMark {
+  const SiteCategoryMark({
+    required this.categoryName,
+    required this.maxMarks,
+    required this.awardedMarks,
+    required this.status,
+  });
+  final String categoryName;
+  final int maxMarks;
+  final int? awardedMarks;
+  final SubmissionItemStatus status;
+
+  factory SiteCategoryMark.fromJson(Map<String, dynamic> j) => SiteCategoryMark(
+        categoryName: j['categoryName'] as String,
+        maxMarks: j['maxMarks'] as int? ?? 0,
+        awardedMarks: j['awardedMarks'] as int?,
+        status: itemStatusFromWire(j['status'] as String),
+      );
+}
+
+class SiteDashboard {
+  const SiteDashboard({
+    required this.project,
+    required this.latestMonth,
+    required this.latestStatus,
+    required this.latestScore,
+    required this.trend,
+    required this.compliance,
+    required this.breakdown,
+  });
+
+  final Project project;
+  final String? latestMonth;
+  final SubmissionStatus? latestStatus;
+  final int? latestScore;
+  final List<SiteTrendPoint> trend;
+  final List<SiteCompliancePoint> compliance;
+  final List<SiteCategoryMark> breakdown;
+
+  factory SiteDashboard.fromJson(Map<String, dynamic> j) {
+    final latest = j['latest'] as Map<String, dynamic>?;
+    return SiteDashboard(
+      project: Project.fromJson(j['project'] as Map<String, dynamic>),
+      latestMonth: latest?['month'] as String?,
+      latestStatus: latest?['status'] == null
+          ? null
+          : submissionStatusFromWire(latest!['status'] as String),
+      latestScore: latest?['totalScore'] as int?,
+      trend: (j['trend'] as List<dynamic>? ?? [])
+          .map((e) => SiteTrendPoint.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      compliance: (j['compliance'] as List<dynamic>? ?? [])
+          .map((e) => SiteCompliancePoint.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      breakdown: (j['categoryBreakdown'] as List<dynamic>? ?? [])
+          .map((e) => SiteCategoryMark.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+    );
+  }
+}
 
 class ProjectScoreRow {
   const ProjectScoreRow({

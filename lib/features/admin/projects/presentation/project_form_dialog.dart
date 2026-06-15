@@ -27,15 +27,19 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   Widget build(BuildContext context) {
     final initial = widget.initial;
     return AlertDialog(
-      title: Text(_editing ? 'Edit project' : 'New project'),
+      title: Text(_editing ? 'Edit site' : 'Register site'),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480, minWidth: 320),
+        child: SingleChildScrollView(
         child: FormBuilder(
           key: _formKey,
           initialValue: {
             'name': initial?.name ?? '',
             'code': initial?.code ?? '',
             'location': initial?.location ?? '',
+            'inchargeName': initial?.inchargeName ?? '',
+            'inchargeEmail': initial?.inchargeEmail ?? '',
+            'inchargePhone': initial?.inchargePhone ?? '',
             'isActive': initial?.isActive ?? true,
           },
           child: Column(
@@ -72,6 +76,37 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                 decoration: const InputDecoration(labelText: 'Location (optional)'),
                 validator: FormBuilderValidators.maxLength(128),
               ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Site in-charge (optional)',
+                    style: Theme.of(context).textTheme.labelLarge),
+              ),
+              const SizedBox(height: 8),
+              FormBuilderTextField(
+                name: 'inchargeName',
+                decoration: const InputDecoration(labelText: 'In-charge name'),
+                validator: FormBuilderValidators.maxLength(128),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'inchargeEmail',
+                decoration: const InputDecoration(labelText: 'In-charge email'),
+                keyboardType: TextInputType.emailAddress,
+                validator: FormBuilderValidators.compose([
+                  FormBuilderValidators.maxLength(128),
+                  (v) => (v == null || v.isEmpty)
+                      ? null
+                      : FormBuilderValidators.email()(v),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'inchargePhone',
+                decoration: const InputDecoration(labelText: 'In-charge phone'),
+                keyboardType: TextInputType.phone,
+                validator: FormBuilderValidators.maxLength(32),
+              ),
               const SizedBox(height: 8),
               FormBuilderSwitch(
                 name: 'isActive',
@@ -84,6 +119,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
               ],
             ],
           ),
+        ),
         ),
       ),
       actions: [
@@ -115,6 +151,9 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
     final name = (v['name'] as String).trim();
     final code = (v['code'] as String).trim().toUpperCase();
     final location = (v['location'] as String).trim();
+    final inName = (v['inchargeName'] as String? ?? '').trim();
+    final inEmail = (v['inchargeEmail'] as String? ?? '').trim();
+    final inPhone = (v['inchargePhone'] as String? ?? '').trim();
     final isActive = v['isActive'] as bool? ?? true;
 
     try {
@@ -123,6 +162,9 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
           widget.initial!.id,
           name: name,
           location: location,
+          inchargeName: inName,
+          inchargeEmail: inEmail,
+          inchargePhone: inPhone,
           isActive: isActive,
         );
       } else {
@@ -130,6 +172,9 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
           name: name,
           code: code,
           location: location.isEmpty ? null : location,
+          inchargeName: inName.isEmpty ? null : inName,
+          inchargeEmail: inEmail.isEmpty ? null : inEmail,
+          inchargePhone: inPhone.isEmpty ? null : inPhone,
           isActive: isActive,
         );
       }

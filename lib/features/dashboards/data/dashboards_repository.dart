@@ -39,10 +39,23 @@ class DashboardsRepository {
     final res = await _dio.get<Map<String, dynamic>>('/dashboards/me');
     return Scorecard.fromJson(res.data!);
   }
+
+  Future<SiteDashboard> site({required String projectId, int months = 6}) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/dashboards/site/$projectId',
+      queryParameters: {'months': months},
+    );
+    return SiteDashboard.fromJson(res.data!);
+  }
 }
 
 final dashboardsRepositoryProvider = Provider<DashboardsRepository>((ref) {
   return DashboardsRepository(ref.watch(apiClientProvider));
+});
+
+final siteDashboardProvider =
+    FutureProvider.autoDispose.family<SiteDashboard, String>((ref, projectId) {
+  return ref.watch(dashboardsRepositoryProvider).site(projectId: projectId);
 });
 
 // ─── Future providers (auto-disposed when screens leave) ────────────────────

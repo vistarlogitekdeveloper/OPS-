@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/api_error.dart';
 import '../../../../core/theme/vistar.dart';
@@ -41,7 +42,7 @@ class ProjectsListScreen extends ConsumerWidget {
                 small: true,
                 onPressed: () => _openCreate(context, ref),
                 icon: Icons.add,
-                label: 'New project',
+                label: 'Register site',
               ),
             ],
           ),
@@ -60,6 +61,8 @@ class ProjectsListScreen extends ConsumerWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, i) => _ProjectRow(
                           project: page.items[i],
+                          onOpen: () =>
+                              context.push('/sites/${page.items[i].id}'),
                           onEdit: () =>
                               _openEdit(context, ref, page.items[i]),
                           onDeactivate: () =>
@@ -127,10 +130,12 @@ class ProjectsListScreen extends ConsumerWidget {
 class _ProjectRow extends StatelessWidget {
   const _ProjectRow({
     required this.project,
+    required this.onOpen,
     required this.onEdit,
     required this.onDeactivate,
   });
   final Project project;
+  final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
 
@@ -138,7 +143,7 @@ class _ProjectRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return VistarCard(
-      onTap: onEdit,
+      onTap: onOpen,
       glow: true,
       padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
       child: Row(
@@ -179,8 +184,13 @@ class _ProjectRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  [project.code, if (project.location != null) project.location]
-                      .join(' · '),
+                  [
+                    project.code,
+                    if (project.location != null) project.location,
+                    if (project.inchargeName != null &&
+                        project.inchargeName!.isNotEmpty)
+                      '👤 ${project.inchargeName}',
+                  ].join(' · '),
                   style: TextStyle(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 12.5,
@@ -234,13 +244,13 @@ class _Empty extends StatelessWidget {
                     size: 36, color: theme.hintColor),
                 const SizedBox(height: 12),
                 Text(
-                  'No projects yet.',
+                  'No sites yet.',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tap "New project" to add one.',
+                  'Tap "Register site" to add one.',
                   style: TextStyle(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 13,
