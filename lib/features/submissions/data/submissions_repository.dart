@@ -57,14 +57,20 @@ class SubmissionsRepository {
     return Submission.fromJson(res.data!['submission'] as Map<String, dynamic>);
   }
 
+  /// Allocates marks for one item. Pass [opsRemark] to set the Ops Excellence
+  /// note ('' clears it); leave it null to keep whatever is stored.
   Future<Submission> scoreItem({
     required String submissionId,
     required String itemId,
     required int awardedMarks,
+    String? opsRemark,
   }) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/submissions/$submissionId/items/$itemId/score',
-      data: {'awardedMarks': awardedMarks},
+      data: {
+        'awardedMarks': awardedMarks,
+        'opsRemark': ?opsRemark,
+      },
     );
     return Submission.fromJson(res.data!['submission'] as Map<String, dynamic>);
   }

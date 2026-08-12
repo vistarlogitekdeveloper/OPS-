@@ -40,6 +40,7 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
           key: _formKey,
           initialValue: {
             'awardedMarks': (widget.item.awardedMarks ?? 0).toString(),
+            'opsRemark': widget.item.opsRemark ?? '',
           },
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -81,6 +82,20 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
                   FormBuilderValidators.max(max),
                 ]),
               ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'opsRemark',
+                decoration: const InputDecoration(
+                  labelText: 'Remark (optional)',
+                  hintText: 'Why these marks were awarded',
+                  alignLabelWithHint: true,
+                ),
+                minLines: 2,
+                maxLines: 4,
+                maxLength: 2000,
+                textCapitalization: TextCapitalization.sentences,
+                validator: FormBuilderValidators.maxLength(2000),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
                 _ErrorChip(message: _error!),
@@ -113,11 +128,14 @@ class _ScoreItemDialogState extends ConsumerState<ScoreItemDialog> {
     });
     final navigator = Navigator.of(context);
     final marks = int.parse(form.value['awardedMarks'] as String);
+    // Always send the remark so clearing the box clears the stored note.
+    final remark = ((form.value['opsRemark'] as String?) ?? '').trim();
     try {
       await ref.read(submissionsRepositoryProvider).scoreItem(
             submissionId: widget.submissionId,
             itemId: widget.item.id,
             awardedMarks: marks,
+            opsRemark: remark,
           );
       navigator.pop(true);
     } catch (e) {

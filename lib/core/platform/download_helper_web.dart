@@ -3,10 +3,18 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
+/// The browser decides where downloads land, so there is nothing to pick.
+bool get supportsLocationPicker => false;
+
+Future<String?> pickSaveDirectory() async => null;
+
 Future<String> saveBytes({
   required Uint8List bytes,
   required String filename,
   required String mimeType,
+  // Accepted for signature parity with the native impl; the browser controls
+  // the destination folder, so it is ignored.
+  String? directory,
 }) async {
   // Wrap bytes in a Blob and trigger a synthetic <a download> click.
   final part = bytes.toJS;

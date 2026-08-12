@@ -48,6 +48,7 @@ class SubmissionItem {
     required this.awardedMarks,
     required this.reviewerComment,
     required this.category,
+    this.opsRemark,
     this.uploadedAt,
   });
 
@@ -60,6 +61,9 @@ class SubmissionItem {
   final SubmissionItemStatus status;
   final int? awardedMarks;
   final String? reviewerComment;
+
+  /// Ops Excellence's note recorded alongside the mark allocation.
+  final String? opsRemark;
   final DateTime? uploadedAt;
   final ReportCategory? category;
 
@@ -73,6 +77,7 @@ class SubmissionItem {
         status: itemStatusFromWire(j['status'] as String),
         awardedMarks: j['awardedMarks'] as int?,
         reviewerComment: j['reviewerComment'] as String?,
+        opsRemark: j['opsRemark'] as String?,
         uploadedAt: j['uploadedAt'] != null ? DateTime.parse(j['uploadedAt'] as String) : null,
         category: j['category'] != null
             ? ReportCategory.fromJson(j['category'] as Map<String, dynamic>)

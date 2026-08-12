@@ -309,6 +309,10 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
                 ),
             ],
           ),
+          if ((item.opsRemark ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _OpsRemark(text: item.opsRemark!.trim()),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
@@ -387,6 +391,55 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
   }
 
   String _kb(int bytes) => (bytes / 1024).toStringAsFixed(1);
+}
+
+/// Ops Excellence's note for an item, shown once a remark has been recorded.
+class _OpsRemark extends StatelessWidget {
+  const _OpsRemark({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(Vistar.rSm),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.sticky_note_2_outlined,
+                size: 14,
+                color: theme.hintColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'OPS REMARK',
+                style: TextStyle(
+                  color: theme.hintColor,
+                  fontSize: 10.5,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            text,
+            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13, height: 1.35),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DecisionActions extends ConsumerWidget {

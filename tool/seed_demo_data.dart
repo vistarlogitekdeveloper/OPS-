@@ -14,7 +14,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
-const _baseUrl = 'https://ops-backend-eqqd.onrender.com/api';
+// Talks to the backend directly, so no CRM `/api/v1/ops-backend` gateway
+// prefix here — just the app's own `/api` mount on PORT (default 4000).
+const _baseUrl = 'http://localhost:4000/api';
 final _pdfBytes = Uint8List.fromList(utf8.encode('%PDF-1.4\n%%EOF\n'));
 final _rng = Random(42);
 

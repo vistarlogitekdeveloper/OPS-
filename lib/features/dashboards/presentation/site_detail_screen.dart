@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
+import '../../exports/presentation/export_buttons.dart';
 import '../../submissions/data/submission_models.dart';
 import '../data/dashboard_models.dart';
 import '../data/dashboards_repository.dart';
@@ -46,6 +47,18 @@ class SiteDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                     children: [
                       _Header(d: d),
+                      // Per-site export: the file is named after this site and
+                      // the month it covers.
+                      if (d.latestMonth != null) ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ExportButtons(
+                            month: d.latestMonth!,
+                            projectId: projectId,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _LatestAndContact(d: d),
                       const SizedBox(height: 20),
