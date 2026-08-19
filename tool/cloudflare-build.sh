@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Cloudflare Pages build script for the OpsApp Flutter web frontend.
+# Cloudflare Workers build script for the OpsApp Flutter web frontend.
 #
 # Cloudflare's build image has no Flutter SDK, so we download a pinned
 # release, then build the web bundle with the backend URL injected.
 #
-# Cloudflare Pages project settings must match:
-#   Build command       -> bash tool/cloudflare-build.sh
-#   Build output directory -> build/web
+# The Cloudflare project is a Worker (Workers Builds), not a Pages site, so
+# the published directory is declared in wrangler.jsonc (assets.directory)
+# rather than a dashboard field. Project settings must match:
+#   Build command  -> bash tool/cloudflare-build.sh
+#   Deploy command -> npx wrangler versions upload
 #
-# Required env var (Pages → Settings → Environment variables):
+# Required build variable (Settings → Variables and Secrets → Build variables):
 #   API_BASE_URL  -> the deployed backend base URL, e.g.
 #                    https://ops-backend-eqqd.onrender.com   (NO trailing slash)
 #

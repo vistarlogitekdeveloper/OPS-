@@ -1,0 +1,21 @@
+{
+  // Cloudflare Worker config for the OpsApp Flutter web frontend.
+  //
+  // This is an assets-only Worker: there is no `main` script, so Cloudflare
+  // serves the compiled Flutter bundle in build/web directly from its edge.
+  //
+  // The bundle is produced by the build step (tool/cloudflare-build.sh) and is
+  // NOT committed — /build/ stays gitignored, and the deploy uploads whatever
+  // that build just produced.
+  "name": "ops",
+  "compatibility_date": "2026-08-19",
+
+  "assets": {
+    "directory": "./build/web",
+
+    // Flutter routes client-side (go_router), so any unknown path must fall
+    // back to index.html instead of 404ing. This is the Workers equivalent of
+    // the SPA rewrite that render.yaml declares for Render.
+    "not_found_handling": "single-page-application"
+  }
+}
