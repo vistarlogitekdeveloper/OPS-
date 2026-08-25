@@ -387,6 +387,7 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
     );
     if (updated == true) {
       ref.invalidate(submissionDetailProvider(widget.submission.id));
+      ref.invalidate(pendingReviewCountProvider);
     }
   }
 
@@ -509,6 +510,7 @@ class _DecisionActions extends ConsumerWidget {
     if (updated == true) {
       ref.invalidate(submissionDetailProvider(submission.id));
       ref.invalidate(reviewQueueProvider);
+      ref.invalidate(pendingReviewCountProvider);
     }
   }
 }

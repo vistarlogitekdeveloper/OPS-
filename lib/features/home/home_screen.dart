@@ -6,6 +6,7 @@ import '../../core/theme/vistar.dart';
 import '../../core/vistar/widgets.dart';
 import '../auth/application/auth_controller.dart';
 import '../auth/data/auth_models.dart';
+import '../review/application/review_controllers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,7 @@ class HomeScreen extends ConsumerWidget {
     final isAdmin = user?.role == UserRole.admin;
     final isSiteOrAdmin = user != null &&
         (user.role == UserRole.siteUser || user.role == UserRole.admin);
+    final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
     final isReviewer = user != null &&
         (user.role == UserRole.manager ||
             user.role == UserRole.opsExcellence ||
@@ -118,10 +120,12 @@ class HomeScreen extends ConsumerWidget {
                           _ActionCard(
                             icon: Icons.rule_folder_outlined,
                             title: 'Review queue',
-                            subtitle: user.role == UserRole.opsExcellence
-                                ? 'Open approved submissions to allocate marks'
-                                : 'Approve or reject submitted reports',
+                            subtitle: pending?.label ??
+                                (user.role == UserRole.opsExcellence
+                                    ? 'Open approved submissions to allocate marks'
+                                    : 'Approve or reject submitted reports'),
                             onTap: () => context.go('/review'),
+                            badge: pending?.count ?? 0,
                           ),
                         if (user != null)
                           _ActionCard(
@@ -292,11 +296,15 @@ class _ActionCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.badge = 0,
   });
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+
+  /// Count of items needing attention; 0 hides the badge.
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
@@ -342,6 +350,10 @@ class _ActionCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (badge > 0) ...[
+              _CountBadge(count: badge),
+              const SizedBox(width: 8),
+            ],
             Icon(Icons.chevron_right, color: theme.hintColor),
           ],
         ),
@@ -404,5 +416,33 @@ class _AccountCard extends StatelessWidget {
       case UserRole.unknown:
         return PillKind.neutral;
     }
+  }
+}
+
+/// Count pill shown on an action tile when work is waiting.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Vistar.pink,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          height: 1.3,
+        ),
+      ),
+    );
   }
 }

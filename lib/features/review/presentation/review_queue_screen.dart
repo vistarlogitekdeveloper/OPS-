@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/data/auth_models.dart';
 import '../../submissions/data/submission_models.dart';
 import '../application/review_controllers.dart';
 
@@ -15,6 +17,9 @@ class ReviewQueueScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(reviewQueueProvider);
     final controller = ref.read(reviewQueueProvider.notifier);
+    final isOps = ref.watch(authControllerProvider).user?.role ==
+        UserRole.opsExcellence;
+    final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -22,7 +27,11 @@ class ReviewQueueScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Review queue'),
+        title: Text(
+          pending?.label == null
+              ? 'Review queue'
+              : 'Review queue · ${pending!.label}',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
@@ -39,7 +48,7 @@ class ReviewQueueScreen extends ConsumerWidget {
                 data: (page) => RefreshIndicator(
                   onRefresh: controller.refresh,
                   child: page.items.isEmpty
-                      ? const _Empty()
+                      ? _Empty(isOps: isOps)
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           itemCount: page.items.length,
@@ -62,7 +71,8 @@ class ReviewQueueScreen extends ConsumerWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty();
+  const _Empty({required this.isOps});
+  final bool isOps;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +104,9 @@ class _Empty extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Submissions show up here once site users send them for approval.',
+                isOps
+                    ? 'Reports show up here once a manager approves them. Until then they sit with the manager for approval.'
+                    : 'Submissions show up here once site users send them for approval.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,

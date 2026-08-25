@@ -155,3 +155,33 @@ class CycleSnapshot {
             .toList(growable: false),
       );
 }
+
+/// How many submissions currently need the signed-in user's attention in the
+/// review section, and what kind of work that is. Drives the review badge.
+class PendingReviewCount {
+  const PendingReviewCount({required this.count, required this.kind});
+
+  final int count;
+
+  /// 'awaiting_approval' (managers/admin), 'awaiting_marks' (Ops Excellence),
+  /// or 'none' for roles without a review section.
+  final String kind;
+
+  static const empty = PendingReviewCount(count: 0, kind: 'none');
+
+  /// Short label for the queue header, e.g. "3 awaiting marks".
+  String? get label {
+    if (count <= 0) return null;
+    return switch (kind) {
+      'awaiting_marks' => '$count awaiting marks',
+      'awaiting_approval' => '$count awaiting approval',
+      _ => null,
+    };
+  }
+
+  factory PendingReviewCount.fromJson(Map<String, dynamic> j) =>
+      PendingReviewCount(
+        count: (j['count'] as num?)?.toInt() ?? 0,
+        kind: j['kind'] as String? ?? 'none',
+      );
+}

@@ -22,6 +22,7 @@ class ReviewQueueController extends AsyncNotifier<PageResult<Submission>> {
 
   Future<void> refresh() async {
     ref.invalidateSelf();
+    ref.invalidate(pendingReviewCountProvider);
     await future;
   }
 }
@@ -35,4 +36,14 @@ final reviewQueueProvider =
 final submissionDetailProvider =
     FutureProvider.autoDispose.family<Submission, String>((ref, id) async {
   return ref.watch(submissionsRepositoryProvider).getById(id);
+});
+
+/// Badge counter for the review section: SUBMITTED awaiting approval for
+/// managers/admin, APPROVED-with-unscored-items for Ops Excellence. Invalidate
+/// after any decision or score so the badge tracks the work.
+final pendingReviewCountProvider =
+    FutureProvider<PendingReviewCount>((ref) async {
+  final user = ref.watch(authControllerProvider).user;
+  if (user == null) return PendingReviewCount.empty;
+  return ref.read(submissionsRepositoryProvider).pendingCount();
 });

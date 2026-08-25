@@ -37,6 +37,12 @@ class SubmissionsRepository {
     return PageResult.fromJson<Submission>(res.data!, Submission.fromJson);
   }
 
+  /// How many submissions await this user's attention in the review section.
+  Future<PendingReviewCount> pendingCount() async {
+    final res = await _dio.get<Map<String, dynamic>>('/submissions/pending-count');
+    return PendingReviewCount.fromJson(res.data!);
+  }
+
   Future<Submission> getById(String id) async {
     final res = await _dio.get<Map<String, dynamic>>('/submissions/$id');
     return Submission.fromJson(res.data!['submission'] as Map<String, dynamic>);
