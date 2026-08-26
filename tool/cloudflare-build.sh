@@ -10,9 +10,14 @@
 #   Build command  -> bash tool/cloudflare-build.sh
 #   Deploy command -> npx wrangler versions upload
 #
-# Required build variable (Settings → Variables and Secrets → Build variables):
-#   API_BASE_URL  -> the deployed backend base URL, e.g.
-#                    https://ops-backend-eqqd.onrender.com   (NO trailing slash)
+# Build variable (Settings → Variables and Secrets → *Build* variables — NOT the
+# runtime "Variables and Secrets" section, which the build command never sees):
+#   API_BASE_URL  -> the deployed backend base URL, NO trailing slash and NO
+#                    /api suffix (ApiConfig appends /api itself).
+#
+# Optional: if unset, the build falls back to DEFAULT_API_BASE_URL below so a
+# missing dashboard variable can't break the deploy. Set it explicitly to point
+# a branch build at a different backend.
 #
 # Optional env var:
 #   FLUTTER_VERSION -> defaults to the version below; override to upgrade.
@@ -24,12 +29,23 @@ FLUTTER_DIR="$HOME/flutter"
 ARCHIVE="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 ARCHIVE_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${ARCHIVE}"
 
+# The OpsApp backend is mounted inside the Vistar CRM at /api/v1/ops-backend.
+# Verified live: .../api/v1/ops-backend/api/health returns {"status":"ok"}.
+DEFAULT_API_BASE_URL="https://vistar-crm.onrender.com/api/v1/ops-backend"
+
 if [ -z "${API_BASE_URL:-}" ]; then
-  echo "ERROR: API_BASE_URL env var is required. Set it in the Cloudflare Pages"
-  echo "       dashboard (Settings -> Environment variables) to your backend"
-  echo "       URL, e.g. https://ops-backend-eqqd.onrender.com"
-  exit 1
+  API_BASE_URL="$DEFAULT_API_BASE_URL"
+  echo "WARN: API_BASE_URL build variable not set; falling back to the default"
+  echo "      $API_BASE_URL"
+  echo "      Set it under Settings -> Variables and Secrets -> Build variables"
+  echo "      to override (note: runtime variables are NOT visible here)."
+else
+  echo "==> API_BASE_URL from build variable: $API_BASE_URL"
 fi
+
+# A trailing slash would produce '//api' once ApiConfig appends its suffix.
+API_BASE_URL="${API_BASE_URL%/}"
+export API_BASE_URL
 
 if ! command -v xz >/dev/null 2>&1; then
   echo "ERROR: 'xz' is not available in the build image, so the Flutter archive"
