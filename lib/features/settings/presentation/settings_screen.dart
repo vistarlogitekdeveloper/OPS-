@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_config.dart';
+import '../../../core/network/backend_controller.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../auth/application/auth_controller.dart';
@@ -139,6 +140,11 @@ class SettingsScreen extends ConsumerWidget {
                     ],
                     const SizedBox(height: 16),
                     const _VistarSection(
+                      title: 'Backend',
+                      child: _BackendPicker(),
+                    ),
+                    const SizedBox(height: 16),
+                    const _VistarSection(
                       title: 'About',
                       child: Column(
                         children: [
@@ -187,10 +193,62 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _ApiSubtitle extends StatelessWidget {
+class _ApiSubtitle extends ConsumerWidget {
   const _ApiSubtitle();
   @override
-  Widget build(BuildContext context) => Text(ApiConfig.baseUrl);
+  Widget build(BuildContext context, WidgetRef ref) =>
+      Text(ref.watch(backendUrlProvider));
+}
+
+/// Lets the user point the app at any known deployment. Switching signs the
+/// user out, because a session from one backend is not valid on another.
+class _BackendPicker extends ConsumerWidget {
+  const _BackendPicker();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final current = ref.watch(backendUrlProvider);
+    final isCustom = ApiConfig.optionFor(current) == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Which deployment this app talks to. Changing it signs you out.',
+          style: TextStyle(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontSize: 12.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        for (final b in ApiConfig.knownBackends)
+          _BackendTile(
+            label: b.label,
+            host: b.host,
+            selected: b.url == current,
+            onTap: () => _switchTo(context, ref, b.url),
+          ),
+        if (isCustom)
+          _BackendTile(
+            label: 'Custom (baked into this build)',
+            host: current,
+            selected: true,
+            onTap: null,
+          ),
+      ],
+    );
+  }
+
+  Future<void> _switchTo(BuildContext context, WidgetRef ref, String? url) async {
+    if (url == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(backendUrlProvider.notifier).select(url);
+    await ref.read(authControllerProvider.notifier).logout();
+    messenger.showSnackBar(
+      SnackBar(content: Text('Now using $url. Please sign in again.')),
+    );
+  }
 }
 
 class _VistarSection extends StatelessWidget {
@@ -243,6 +301,45 @@ class _ThemeOption extends StatelessWidget {
           ? const Icon(Icons.check_circle, color: Vistar.pink)
           : Icon(Icons.radio_button_unchecked, color: scheme.outline),
       onTap: onTap,
+    );
+  }
+}
+
+/// One selectable deployment. Uses a plain tile rather than RadioListTile,
+/// whose groupValue/onChanged are deprecated in this Flutter version.
+class _BackendTile extends StatelessWidget {
+  const _BackendTile({
+    required this.label,
+    required this.host,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String host;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      onTap: selected ? null : onTap,
+      leading: Icon(
+        selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: selected ? Vistar.pink : theme.hintColor,
+        size: 20,
+      ),
+      title: Text(label),
+      subtitle: Text(
+        host,
+        style: TextStyle(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }

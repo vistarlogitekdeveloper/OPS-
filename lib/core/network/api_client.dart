@@ -4,13 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/secure_token_store.dart';
 import 'api_config.dart';
 import 'auth_interceptor.dart';
+import 'backend_controller.dart';
 
 /// Bare Dio used by the auth flow itself (no auth interceptor — would recurse
 /// during refresh). Use this for `/auth/login`, `/auth/refresh`, and the initial
 /// `/api/health` probe.
 final unauthenticatedDioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(
-    baseUrl: ApiConfig.apiRoot,
+    baseUrl: ApiConfig.apiRootFor(ref.watch(backendUrlProvider)),
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 30),
     sendTimeout: const Duration(seconds: 30),
@@ -28,7 +29,7 @@ final apiClientProvider = Provider<Dio>((ref) {
   final unauth = ref.watch(unauthenticatedDioProvider);
 
   final dio = Dio(BaseOptions(
-    baseUrl: ApiConfig.apiRoot,
+    baseUrl: ApiConfig.apiRootFor(ref.watch(backendUrlProvider)),
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 30),
     sendTimeout: const Duration(seconds: 30),

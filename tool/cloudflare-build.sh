@@ -30,8 +30,12 @@ ARCHIVE="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 ARCHIVE_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${ARCHIVE}"
 
 # The OpsApp backend is mounted inside the Vistar CRM at /api/v1/ops-backend.
-# Verified live: .../api/v1/ops-backend/api/health returns {"status":"ok"}.
-DEFAULT_API_BASE_URL="https://vistar-crm.onrender.com/api/v1/ops-backend"
+# The CRM runs on more than one host; this is only the STARTING backend — the
+# app ships knowing about all of them and lets the user switch in Settings, so
+# a wrong default here is recoverable without a rebuild (see ApiConfig).
+# Points at the production host, which serves live traffic; the Render instance
+# is intermittently disabled.
+DEFAULT_API_BASE_URL="https://api.vistarlogitek.com/api/v1/ops-backend"
 
 if [ -z "${API_BASE_URL:-}" ]; then
   API_BASE_URL="$DEFAULT_API_BASE_URL"
