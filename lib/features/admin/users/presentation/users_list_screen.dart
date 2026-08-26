@@ -154,6 +154,8 @@ PillKind _pillForRole(UserRole r) {
       return PillKind.pink;
     case UserRole.manager:
       return PillKind.info;
+    case UserRole.regionalManager:
+      return PillKind.violet;
     case UserRole.opsExcellence:
       return PillKind.violet;
     case UserRole.siteUser:

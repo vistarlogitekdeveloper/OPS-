@@ -253,6 +253,10 @@ class _MonthChip extends StatelessWidget {
         Vistar.info.withValues(alpha: 0.16),
         Vistar.info,
       ),
+      SubmissionStatus.managerApproved => (
+        Vistar.amber.withValues(alpha: 0.16),
+        Vistar.amber,
+      ),
       SubmissionStatus.approved => (
         Vistar.ok.withValues(alpha: 0.16),
         Vistar.ok,

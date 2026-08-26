@@ -1,4 +1,4 @@
-enum UserRole { admin, manager, siteUser, opsExcellence, unknown }
+enum UserRole { admin, manager, regionalManager, siteUser, opsExcellence, unknown }
 
 UserRole roleFromWire(String raw) {
   switch (raw) {
@@ -6,6 +6,8 @@ UserRole roleFromWire(String raw) {
       return UserRole.admin;
     case 'MANAGER':
       return UserRole.manager;
+    case 'REGIONAL_MANAGER':
+      return UserRole.regionalManager;
     case 'SITE_USER':
       return UserRole.siteUser;
     case 'OPS_EXCELLENCE':
@@ -20,7 +22,9 @@ String roleLabel(UserRole r) {
     case UserRole.admin:
       return 'Administrator';
     case UserRole.manager:
-      return 'Manager';
+      return 'Project Manager';
+    case UserRole.regionalManager:
+      return 'Regional Manager';
     case UserRole.siteUser:
       return 'Site User';
     case UserRole.opsExcellence:

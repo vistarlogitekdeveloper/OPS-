@@ -66,8 +66,11 @@ class ReviewDetailScreen extends ConsumerWidget {
                                 sub.status == SubmissionStatus.approved,
                           ),
                         ),
-                      if (role == UserRole.manager ||
-                          role == UserRole.admin) ...[
+                      if (sub.approvals.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _ApprovalTrail(approvals: sub.approvals),
+                      ],
+                      if (_canSeeDecisionPanel(role, sub)) ...[
                         const SizedBox(height: 8),
                         _DecisionActions(submission: sub),
                       ],
@@ -83,12 +86,31 @@ class ReviewDetailScreen extends ConsumerWidget {
   }
 }
 
+/// The stage a role owns, or null if it never decides. Admin owns every stage.
+SubmissionStatus? _stageFor(UserRole? role) => switch (role) {
+      UserRole.manager => SubmissionStatus.submitted,
+      UserRole.regionalManager => SubmissionStatus.managerApproved,
+      _ => null,
+    };
+
+/// Reviewers see the decision panel on reports sitting at their own stage;
+/// admin sees it at either stage.
+bool _canSeeDecisionPanel(UserRole? role, Submission sub) {
+  final awaiting = sub.status == SubmissionStatus.submitted ||
+      sub.status == SubmissionStatus.managerApproved;
+  if (role == UserRole.admin) return awaiting;
+  final stage = _stageFor(role);
+  return stage != null && sub.status == stage;
+}
+
 PillKind _statusPill(SubmissionStatus s) {
   switch (s) {
     case SubmissionStatus.draft:
       return PillKind.neutral;
     case SubmissionStatus.submitted:
       return PillKind.info;
+    case SubmissionStatus.managerApproved:
+      return PillKind.amber;
     case SubmissionStatus.approved:
       return PillKind.ok;
     case SubmissionStatus.rejected:
@@ -450,7 +472,11 @@ class _DecisionActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final canDecide = submission.status == SubmissionStatus.submitted;
+    final atRegional = submission.status == SubmissionStatus.managerApproved;
+    final canDecide = submission.status == SubmissionStatus.submitted || atRegional;
+    // A regional 'reject' returns the report to the project manager rather than
+    // bouncing it to the site user, so it is labelled as a send-back.
+    final negativeLabel = atRegional ? 'Send back' : 'Reject';
     return VistarCard(
       cornerS: true,
       padding: const EdgeInsets.all(20),
@@ -459,9 +485,11 @@ class _DecisionActions extends ConsumerWidget {
         children: [
           const SectionTitle('Decision'),
           Text(
-            canDecide
-                ? 'Approve or reject this submission. All items follow the submission state.'
-                : 'Already ${submissionStatusLabel(submission.status).toLowerCase()}.',
+            !canDecide
+                ? 'Already ${submissionStatusLabel(submission.status).toLowerCase()}.'
+                : atRegional
+                    ? 'Final approval. Approving releases the report to Ops Excellence for marks; sending it back returns it to the project manager.'
+                    : 'First approval. Approving passes the report to the regional manager; rejecting returns it to the site user.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
@@ -471,8 +499,8 @@ class _DecisionActions extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed:
                       !canDecide ? null : () => _decide(context, ref, false),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Reject'),
+                  icon: Icon(atRegional ? Icons.undo : Icons.close),
+                  label: Text(negativeLabel),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: canDecide ? Vistar.bad : null,
                     side: BorderSide(
@@ -512,5 +540,71 @@ class _DecisionActions extends ConsumerWidget {
       ref.invalidate(reviewQueueProvider);
       ref.invalidate(pendingReviewCountProvider);
     }
+  }
+}
+
+/// Ordered record of who approved (or sent back) and when.
+class _ApprovalTrail extends StatelessWidget {
+  const _ApprovalTrail({required this.approvals});
+  final List<SubmissionApproval> approvals;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return VistarCard(
+      cornerS: true,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionTitle('Approval trail'),
+          const SizedBox(height: 4),
+          for (final a in approvals)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    a.approved ? Icons.check_circle_outline : Icons.undo,
+                    size: 16,
+                    color: a.approved ? Vistar.ok : Vistar.bad,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${a.actionLabel} by ${a.deciderName} · ${a.stageLabel}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          a.createdAt.toLocal().toString().split('.').first,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        if ((a.comment ?? '').trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              a.comment!.trim(),
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

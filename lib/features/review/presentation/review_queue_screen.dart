@@ -17,8 +17,9 @@ class ReviewQueueScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(reviewQueueProvider);
     final controller = ref.read(reviewQueueProvider.notifier);
-    final isOps = ref.watch(authControllerProvider).user?.role ==
-        UserRole.opsExcellence;
+    final role = ref.watch(authControllerProvider).user?.role;
+    final isOps = role == UserRole.opsExcellence;
+    final isRegional = role == UserRole.regionalManager;
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
 
     return Scaffold(
@@ -48,7 +49,7 @@ class ReviewQueueScreen extends ConsumerWidget {
                 data: (page) => RefreshIndicator(
                   onRefresh: controller.refresh,
                   child: page.items.isEmpty
-                      ? _Empty(isOps: isOps)
+                      ? _Empty(isOps: isOps, isRegional: isRegional)
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           itemCount: page.items.length,
@@ -71,8 +72,9 @@ class ReviewQueueScreen extends ConsumerWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.isOps});
+  const _Empty({required this.isOps, required this.isRegional});
   final bool isOps;
+  final bool isRegional;
 
   @override
   Widget build(BuildContext context) {
@@ -105,8 +107,10 @@ class _Empty extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 isOps
-                    ? 'Reports show up here once a manager approves them. Until then they sit with the manager for approval.'
-                    : 'Submissions show up here once site users send them for approval.',
+                    ? 'Reports show up here once the regional manager gives final approval. Until then they sit with the approvers.'
+                    : isRegional
+                        ? 'Reports show up here once the project manager approves them. Until then they sit with the project manager.'
+                        : 'Submissions show up here once site users send them for approval.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,

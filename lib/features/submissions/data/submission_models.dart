@@ -1,10 +1,11 @@
 import '../../categories/data/category_model.dart';
 
-enum SubmissionStatus { draft, submitted, approved, rejected, unknown }
+enum SubmissionStatus { draft, submitted, managerApproved, approved, rejected, unknown }
 
 SubmissionStatus submissionStatusFromWire(String s) => switch (s) {
       'DRAFT' => SubmissionStatus.draft,
       'SUBMITTED' => SubmissionStatus.submitted,
+      'MANAGER_APPROVED' => SubmissionStatus.managerApproved,
       'APPROVED' => SubmissionStatus.approved,
       'REJECTED' => SubmissionStatus.rejected,
       _ => SubmissionStatus.unknown,
@@ -12,7 +13,8 @@ SubmissionStatus submissionStatusFromWire(String s) => switch (s) {
 
 String submissionStatusLabel(SubmissionStatus s) => switch (s) {
       SubmissionStatus.draft => 'Draft',
-      SubmissionStatus.submitted => 'Submitted',
+      SubmissionStatus.submitted => 'Awaiting Project Manager',
+      SubmissionStatus.managerApproved => 'Awaiting Regional Manager',
       SubmissionStatus.approved => 'Approved',
       SubmissionStatus.rejected => 'Rejected',
       SubmissionStatus.unknown => 'Unknown',
@@ -85,6 +87,53 @@ class SubmissionItem {
       );
 }
 
+/// One recorded decision in the approval chain.
+class SubmissionApproval {
+  const SubmissionApproval({
+    required this.stage,
+    required this.decision,
+    required this.deciderName,
+    required this.deciderRole,
+    required this.createdAt,
+    this.comment,
+  });
+
+  /// 'MANAGER' or 'REGIONAL'.
+  final String stage;
+
+  /// 'APPROVE' or 'REJECT'.
+  final String decision;
+  final String deciderName;
+  final String deciderRole;
+  final DateTime createdAt;
+  final String? comment;
+
+  bool get approved => decision == 'APPROVE';
+
+  String get stageLabel =>
+      stage == 'REGIONAL' ? 'Regional Manager' : 'Project Manager';
+
+  /// A regional rejection is a send-back to the project manager, not an
+  /// outright rejection of the report.
+  String get actionLabel => approved
+      ? 'Approved'
+      : stage == 'REGIONAL'
+          ? 'Sent back'
+          : 'Rejected';
+
+  factory SubmissionApproval.fromJson(Map<String, dynamic> j) {
+    final decider = j['decider'] as Map<String, dynamic>?;
+    return SubmissionApproval(
+      stage: j['stage'] as String? ?? 'MANAGER',
+      decision: j['decision'] as String? ?? 'APPROVE',
+      deciderName: decider?['name'] as String? ?? 'Unknown',
+      deciderRole: decider?['role'] as String? ?? '',
+      comment: j['comment'] as String?,
+      createdAt: DateTime.parse(j['createdAt'] as String),
+    );
+  }
+}
+
 class SubmissionProject {
   const SubmissionProject({required this.id, required this.name, required this.code});
   final String id;
@@ -107,6 +156,7 @@ class Submission {
     required this.totalScore,
     required this.items,
     required this.project,
+    this.approvals = const [],
     this.submittedAt,
     this.reviewedAt,
     this.comments,
@@ -119,6 +169,9 @@ class Submission {
   final int totalScore;
   final List<SubmissionItem> items;
   final SubmissionProject? project;
+
+  /// Decisions taken so far, oldest first.
+  final List<SubmissionApproval> approvals;
   final DateTime? submittedAt;
   final DateTime? reviewedAt;
   final String? comments;
@@ -137,6 +190,9 @@ class Submission {
             : null,
         items: (j['items'] as List<dynamic>? ?? const [])
             .map((e) => SubmissionItem.fromJson(e as Map<String, dynamic>))
+            .toList(growable: false),
+        approvals: (j['approvals'] as List<dynamic>? ?? const [])
+            .map((e) => SubmissionApproval.fromJson(e as Map<String, dynamic>))
             .toList(growable: false),
       );
 }

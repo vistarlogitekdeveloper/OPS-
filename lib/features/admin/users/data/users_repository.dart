@@ -24,6 +24,9 @@ class UsersRepository {
       case UserRole.manager:
         roleParam = 'MANAGER';
         break;
+      case UserRole.regionalManager:
+        roleParam = 'REGIONAL_MANAGER';
+        break;
       case UserRole.siteUser:
         roleParam = 'SITE_USER';
         break;
@@ -103,6 +106,7 @@ class UsersRepository {
   static String _roleWire(UserRole r) => switch (r) {
         UserRole.admin => 'ADMIN',
         UserRole.manager => 'MANAGER',
+        UserRole.regionalManager => 'REGIONAL_MANAGER',
         UserRole.siteUser => 'SITE_USER',
         UserRole.opsExcellence => 'OPS_EXCELLENCE',
         UserRole.unknown => throw ArgumentError('Cannot send "unknown" role'),

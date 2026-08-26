@@ -126,6 +126,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                     for (final r in const [
                       UserRole.admin,
                       UserRole.manager,
+                      UserRole.regionalManager,
                       UserRole.siteUser,
                       UserRole.opsExcellence,
                     ])
@@ -139,11 +140,15 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                 const SizedBox(height: 16),
                 Text('Assigned projects', style: theme.textTheme.labelLarge),
                 Text(
-                  _role == UserRole.siteUser
-                      ? 'Pick the site this user is responsible for.'
-                      : _role == UserRole.manager
-                          ? 'Pick the projects this manager reviews.'
-                          : 'Admins and Ops Excellence see all projects regardless.',
+                  switch (_role) {
+                    UserRole.siteUser =>
+                      'Pick the site this user is responsible for.',
+                    UserRole.manager =>
+                      'Pick the projects this project manager approves first.',
+                    UserRole.regionalManager =>
+                      'Pick the projects this regional manager approves after the project manager.',
+                    _ => 'Admins and Ops Excellence see all projects regardless.',
+                  },
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
