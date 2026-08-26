@@ -12,6 +12,7 @@ import '../../submissions/data/submission_models.dart';
 import '../data/dashboard_models.dart';
 import '../../exports/presentation/export_buttons.dart';
 import '../data/dashboards_repository.dart';
+import 'ops_dashboard.dart';
 import 'widgets/compliance_heatmap.dart';
 import 'widgets/projects_bar_chart.dart';
 import 'widgets/trend_line_chart.dart';
@@ -66,9 +67,10 @@ class DashboardScreen extends ConsumerWidget {
               child: switch (role) {
                 UserRole.siteUser => const _SiteUserDashboard(),
                 UserRole.manager => const _ManagerDashboard(),
-                UserRole.admin ||
-                UserRole.opsExcellence =>
-                  const _AdminDashboard(),
+                // The Ops team owns the marking, so their landing view is the
+                // cycle review matrix rather than the roll-up charts.
+                UserRole.opsExcellence => const OpsExcellenceDashboard(),
+                UserRole.admin => const _AdminDashboard(),
                 _ => const _NoDashboard(),
               },
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import 'dashboard_models.dart';
+import 'ops_summary_models.dart';
 
 class DashboardsRepository {
   DashboardsRepository(this._dio);
@@ -38,6 +39,16 @@ class DashboardsRepository {
   Future<Scorecard> me() async {
     final res = await _dio.get<Map<String, dynamic>>('/dashboards/me');
     return Scorecard.fromJson(res.data!);
+  }
+
+  /// The Ops Excellence cycle review for one month: marks, remarks, upload
+  /// grid and the fleet spread, in a single payload.
+  Future<OpsSummary> opsSummary({required String month}) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/dashboards/ops-summary',
+      queryParameters: {'month': month},
+    );
+    return OpsSummary.fromJson(res.data!);
   }
 
   Future<SiteDashboard> site({required String projectId, int months = 6}) async {
@@ -90,4 +101,9 @@ final complianceProvider =
 
 final scorecardProvider = FutureProvider.autoDispose<Scorecard>((ref) {
   return ref.watch(dashboardsRepositoryProvider).me();
+});
+
+final opsSummaryProvider =
+    FutureProvider.autoDispose.family<OpsSummary, String>((ref, month) {
+  return ref.watch(dashboardsRepositoryProvider).opsSummary(month: month);
 });
