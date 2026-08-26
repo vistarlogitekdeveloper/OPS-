@@ -367,15 +367,73 @@ class _ManagerDashboard extends ConsumerWidget {
   }
 }
 
-// ─── Admin / Ops Excellence — full grid ─────────────────────────────────────
+// ─── Admin ──────────────────────────────────────────────────────────────────
 
-class _AdminDashboard extends ConsumerStatefulWidget {
+/// Which of the two admin views is showing.
+enum _AdminView { cycle, trends }
+
+/// Admins land on the same cycle review the Ops team gets — that is the
+/// month's actual work — but they keep the across-time roll-up too, since
+/// "how is this cycle scoring" and "where is the trend going" are different
+/// questions and only the first fits in a single month's grid.
+class _AdminDashboard extends StatefulWidget {
   const _AdminDashboard();
   @override
-  ConsumerState<_AdminDashboard> createState() => _AdminDashboardState();
+  State<_AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends ConsumerState<_AdminDashboard> {
+class _AdminDashboardState extends State<_AdminDashboard> {
+  _AdminView _view = _AdminView.cycle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SegmentedButton<_AdminView>(
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              segments: const [
+                ButtonSegment(
+                  value: _AdminView.cycle,
+                  label: Text('Cycle review'),
+                ),
+                ButtonSegment(
+                  value: _AdminView.trends,
+                  label: Text('Trends'),
+                ),
+              ],
+              selected: {_view},
+              onSelectionChanged: (s) => setState(() => _view = s.first),
+            ),
+          ),
+        ),
+        Expanded(
+          child: switch (_view) {
+            _AdminView.cycle => const OpsExcellenceDashboard(),
+            _AdminView.trends => const _AdminTrendsView(),
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Across-time roll-up: per-project scores for a month, the month-over-month
+/// average, and the six-month compliance grid.
+class _AdminTrendsView extends ConsumerStatefulWidget {
+  const _AdminTrendsView();
+  @override
+  ConsumerState<_AdminTrendsView> createState() => _AdminTrendsViewState();
+}
+
+class _AdminTrendsViewState extends ConsumerState<_AdminTrendsView> {
   String _month = _currentMonth();
 
   @override
