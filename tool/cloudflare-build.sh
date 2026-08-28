@@ -16,9 +16,8 @@
 #
 # Optional build variable (Settings -> Variables and Secrets -> Build variables):
 #   API_BASE_URL  -> the deployed backend base URL, NO trailing slash, e.g.
-#                    https://ops-backend-eqqd.onrender.com
-#                    Defaults to DEFAULT_API_BASE_URL below when unset, which
-#                    is the same value render.yaml pins for the Render deploy.
+#                    https://api.vistarlogitek.com/api/v1/ops-backend
+#                    Defaults to DEFAULT_API_BASE_URL below when unset.
 #
 # Optional env var:
 #   FLUTTER_VERSION -> defaults to the version below; override to upgrade.
@@ -32,9 +31,11 @@ ARCHIVE_URL="https://storage.googleapis.com/flutter_infra_release/releases/stabl
 
 # Cloudflare build variables are dashboard-only — there is no in-repo place to
 # declare them the way render.yaml does. Rather than fail the build when the
-# dashboard has none set, fall back to the value render.yaml already pins and
-# say so loudly, so a wrong backend is visible in the build log.
-DEFAULT_API_BASE_URL="https://ops-backend-eqqd.onrender.com"
+# dashboard has none set, fall back to the same host ApiConfig defaults to and
+# say so loudly, so a wrong backend is visible in the build log. NOTE: do NOT
+# copy render.yaml:23 — it still pins ops-backend-eqqd.onrender.com, which is
+# decommissioned (/api/health returns 503).
+DEFAULT_API_BASE_URL="https://api.vistarlogitek.com/api/v1/ops-backend"
 
 if [ -z "${API_BASE_URL:-}" ]; then
   echo "==> API_BASE_URL build variable not set; falling back to the default:"
