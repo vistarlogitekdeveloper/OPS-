@@ -8,11 +8,17 @@
 # the published directory is declared in wrangler.jsonc (assets.directory)
 # rather than a dashboard field. Project settings must match:
 #   Build command  -> bash tool/cloudflare-build.sh
-#   Deploy command -> npx wrangler versions upload
+#   Deploy command -> npx wrangler deploy
 #
-# Required build variable (Settings → Variables and Secrets → Build variables):
-#   API_BASE_URL  -> the deployed backend base URL, e.g.
-#                    https://ops-backend-eqqd.onrender.com   (NO trailing slash)
+# NOTE: use `wrangler deploy`, NOT `wrangler versions upload`. The latter
+# uploads a version without activating it, so the live URL keeps serving the
+# previous bundle and a "successful" build silently changes nothing.
+#
+# Optional build variable (Settings -> Variables and Secrets -> Build variables):
+#   API_BASE_URL  -> the deployed backend base URL, NO trailing slash, e.g.
+#                    https://ops-backend-eqqd.onrender.com
+#                    Defaults to DEFAULT_API_BASE_URL below when unset, which
+#                    is the same value render.yaml pins for the Render deploy.
 #
 # Optional env var:
 #   FLUTTER_VERSION -> defaults to the version below; override to upgrade.
@@ -24,12 +30,25 @@ FLUTTER_DIR="$HOME/flutter"
 ARCHIVE="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 ARCHIVE_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${ARCHIVE}"
 
+# Cloudflare build variables are dashboard-only — there is no in-repo place to
+# declare them the way render.yaml does. Rather than fail the build when the
+# dashboard has none set, fall back to the value render.yaml already pins and
+# say so loudly, so a wrong backend is visible in the build log.
+DEFAULT_API_BASE_URL="https://ops-backend-eqqd.onrender.com"
+
 if [ -z "${API_BASE_URL:-}" ]; then
-  echo "ERROR: API_BASE_URL env var is required. Set it in the Cloudflare Pages"
-  echo "       dashboard (Settings -> Environment variables) to your backend"
-  echo "       URL, e.g. https://ops-backend-eqqd.onrender.com"
-  exit 1
+  echo "==> API_BASE_URL build variable not set; falling back to the default:"
+  echo "    ${DEFAULT_API_BASE_URL}"
+  echo "    To point at a different backend, add an API_BASE_URL build variable"
+  echo "    under Settings -> Variables and Secrets -> Build variables."
+  API_BASE_URL="$DEFAULT_API_BASE_URL"
+else
+  echo "==> API_BASE_URL from build variable: ${API_BASE_URL}"
 fi
+
+# ApiConfig.apiRoot appends its own '/api', so a trailing slash here would
+# produce a double slash in every request URL.
+API_BASE_URL="${API_BASE_URL%/}"
 
 if ! command -v xz >/dev/null 2>&1; then
   echo "ERROR: 'xz' is not available in the build image, so the Flutter archive"
