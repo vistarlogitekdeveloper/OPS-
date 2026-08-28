@@ -18,7 +18,7 @@ class ApiConfig {
 
   static String get baseUrl {
     if (_override.isNotEmpty) return _override;
-    return 'https://vistar-crm.onrender.com/api/v1/ops-backend';
+    return 'https://api.vistarlogitek.com/api/v1/ops-backend';
   }
 
   static String get apiRoot => '$baseUrl/api';
