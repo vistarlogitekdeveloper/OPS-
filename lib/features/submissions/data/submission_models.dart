@@ -14,7 +14,7 @@ SubmissionStatus submissionStatusFromWire(String s) => switch (s) {
 String submissionStatusLabel(SubmissionStatus s) => switch (s) {
       SubmissionStatus.draft => 'Draft',
       SubmissionStatus.submitted => 'Awaiting Project Manager',
-      SubmissionStatus.managerApproved => 'Awaiting Regional Manager',
+      SubmissionStatus.managerApproved => 'Awaiting Cluster Manager',
       SubmissionStatus.approved => 'Approved',
       SubmissionStatus.rejected => 'Rejected',
       SubmissionStatus.unknown => 'Unknown',
@@ -98,7 +98,7 @@ class SubmissionApproval {
     this.comment,
   });
 
-  /// 'MANAGER' or 'REGIONAL'.
+  /// 'MANAGER' or 'CLUSTER'.
   final String stage;
 
   /// 'APPROVE' or 'REJECT'.
@@ -110,14 +110,17 @@ class SubmissionApproval {
 
   bool get approved => decision == 'APPROVE';
 
-  String get stageLabel =>
-      stage == 'REGIONAL' ? 'Regional Manager' : 'Project Manager';
+  /// 'REGIONAL' is the pre-rename wire value; historical approval rows and a
+  /// not-yet-redeployed backend both still send it.
+  bool get _isClusterStage => stage == 'CLUSTER' || stage == 'REGIONAL';
 
-  /// A regional rejection is a send-back to the project manager, not an
+  String get stageLabel => _isClusterStage ? 'Cluster Manager' : 'Project Manager';
+
+  /// A cluster-stage rejection is a send-back to the project manager, not an
   /// outright rejection of the report.
   String get actionLabel => approved
       ? 'Approved'
-      : stage == 'REGIONAL'
+      : _isClusterStage
           ? 'Sent back'
           : 'Rejected';
 

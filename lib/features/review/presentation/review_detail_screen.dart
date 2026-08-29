@@ -89,7 +89,7 @@ class ReviewDetailScreen extends ConsumerWidget {
 /// The stage a role owns, or null if it never decides. Admin owns every stage.
 SubmissionStatus? _stageFor(UserRole? role) => switch (role) {
       UserRole.manager => SubmissionStatus.submitted,
-      UserRole.regionalManager => SubmissionStatus.managerApproved,
+      UserRole.clusterManager => SubmissionStatus.managerApproved,
       _ => null,
     };
 
@@ -472,11 +472,11 @@ class _DecisionActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final atRegional = submission.status == SubmissionStatus.managerApproved;
-    final canDecide = submission.status == SubmissionStatus.submitted || atRegional;
-    // A regional 'reject' returns the report to the project manager rather than
+    final atClusterStage = submission.status == SubmissionStatus.managerApproved;
+    final canDecide = submission.status == SubmissionStatus.submitted || atClusterStage;
+    // A cluster-stage 'reject' returns the report to the project manager rather than
     // bouncing it to the site user, so it is labelled as a send-back.
-    final negativeLabel = atRegional ? 'Send back' : 'Reject';
+    final negativeLabel = atClusterStage ? 'Send back' : 'Reject';
     return VistarCard(
       cornerS: true,
       padding: const EdgeInsets.all(20),
@@ -487,9 +487,9 @@ class _DecisionActions extends ConsumerWidget {
           Text(
             !canDecide
                 ? 'Already ${submissionStatusLabel(submission.status).toLowerCase()}.'
-                : atRegional
+                : atClusterStage
                     ? 'Final approval. Approving releases the report to Ops Excellence for marks; sending it back returns it to the project manager.'
-                    : 'First approval. Approving passes the report to the regional manager; rejecting returns it to the site user.',
+                    : 'First approval. Approving passes the report to the cluster manager; rejecting returns it to the site user.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
@@ -499,7 +499,7 @@ class _DecisionActions extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed:
                       !canDecide ? null : () => _decide(context, ref, false),
-                  icon: Icon(atRegional ? Icons.undo : Icons.close),
+                  icon: Icon(atClusterStage ? Icons.undo : Icons.close),
                   label: Text(negativeLabel),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: canDecide ? Vistar.bad : null,

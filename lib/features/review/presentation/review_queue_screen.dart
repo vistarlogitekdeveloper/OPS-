@@ -19,7 +19,7 @@ class ReviewQueueScreen extends ConsumerWidget {
     final controller = ref.read(reviewQueueProvider.notifier);
     final role = ref.watch(authControllerProvider).user?.role;
     final isOps = role == UserRole.opsExcellence;
-    final isRegional = role == UserRole.regionalManager;
+    final isCluster = role == UserRole.clusterManager;
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
 
     return Scaffold(
@@ -49,7 +49,7 @@ class ReviewQueueScreen extends ConsumerWidget {
                 data: (page) => RefreshIndicator(
                   onRefresh: controller.refresh,
                   child: page.items.isEmpty
-                      ? _Empty(isOps: isOps, isRegional: isRegional)
+                      ? _Empty(isOps: isOps, isCluster: isCluster)
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           itemCount: page.items.length,
@@ -72,9 +72,9 @@ class ReviewQueueScreen extends ConsumerWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.isOps, required this.isRegional});
+  const _Empty({required this.isOps, required this.isCluster});
   final bool isOps;
-  final bool isRegional;
+  final bool isCluster;
 
   @override
   Widget build(BuildContext context) {
@@ -107,8 +107,8 @@ class _Empty extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 isOps
-                    ? 'Reports show up here once the regional manager gives final approval. Until then they sit with the approvers.'
-                    : isRegional
+                    ? 'Reports show up here once the cluster manager gives final approval. Until then they sit with the approvers.'
+                    : isCluster
                         ? 'Reports show up here once the project manager approves them. Until then they sit with the project manager.'
                         : 'Submissions show up here once site users send them for approval.',
                 style: TextStyle(

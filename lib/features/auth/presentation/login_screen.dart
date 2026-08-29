@@ -292,10 +292,14 @@ class _FormPanel extends StatelessWidget {
           FormBuilderTextField(
             name: 'username',
             autofocus: true,
-            autofillHints: const [AutofillHints.username],
+            // The backend resolves this field as either a username or an
+            // email (auth.service findActiveByIdentifier), so offer both
+            // autofill categories and the keyboard with '@' on it.
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
+            keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
-              labelText: 'Username',
+              labelText: 'Username or email',
               prefixIcon: Icon(Icons.person_outline),
             ),
             validator: FormBuilderValidators.compose([

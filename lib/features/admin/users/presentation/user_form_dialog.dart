@@ -126,7 +126,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                     for (final r in const [
                       UserRole.admin,
                       UserRole.manager,
-                      UserRole.regionalManager,
+                      UserRole.clusterManager,
                       UserRole.siteUser,
                       UserRole.opsExcellence,
                     ])
@@ -145,8 +145,8 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                       'Pick the site this user is responsible for.',
                     UserRole.manager =>
                       'Pick the projects this project manager approves first.',
-                    UserRole.regionalManager =>
-                      'Pick the projects this regional manager approves after the project manager.',
+                    UserRole.clusterManager =>
+                      'Pick the projects this cluster manager approves after the project manager.',
                     _ => 'Admins and Ops Excellence see all projects regardless.',
                   },
                   style: theme.textTheme.bodySmall

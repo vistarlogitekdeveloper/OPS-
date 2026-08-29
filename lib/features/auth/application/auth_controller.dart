@@ -118,7 +118,7 @@ class AuthController extends Notifier<AuthState> {
 
   static String _messageFor(DioException e) {
     final code = e.response?.statusCode;
-    if (code == 401) return 'Incorrect username or password.';
+    if (code == 401) return 'Incorrect username, email, or password.';
     if (code == 400) return 'Please check the form and try again.';
     if (e.type == DioExceptionType.connectionError ||
         e.type == DioExceptionType.connectionTimeout) {

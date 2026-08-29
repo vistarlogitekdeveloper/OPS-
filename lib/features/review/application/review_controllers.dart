@@ -6,7 +6,7 @@ import '../../submissions/data/submission_models.dart';
 import '../../submissions/data/submissions_repository.dart';
 
 /// Work queue for reviewers. The server decides which statuses each role sees:
-/// project manager -> awaiting them, regional manager -> approved by the
+/// project manager -> awaiting them, cluster manager -> approved by the
 /// project manager, admin -> both stages, Ops Excellence -> approved and
 /// awaiting marks. Further scoped by project assignment on the server.
 class ReviewQueueController extends AsyncNotifier<PageResult<Submission>> {
