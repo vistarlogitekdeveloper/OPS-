@@ -22,12 +22,12 @@ class ApiConfig {
     BackendOption(
       label: 'Production',
       host: 'api.vistarlogitek.com',
-      url: 'https://api.vistarlogitek.com/api/v1/ops-backend',
+      url: 'api.vistarlogitek.com/api/v1/ops-backend',
     ),
     BackendOption(
       label: 'Render',
-      host: 'https://api.vistarlogitek.com',
-      url: 'https://https://api.vistarlogitek.com/api/v1/ops-backend',
+      host: 'api.vistarlogitek.com',
+      url: 'https://api.vistarlogitek.com/api/v1/ops-backend',
     ),
   ];
 
