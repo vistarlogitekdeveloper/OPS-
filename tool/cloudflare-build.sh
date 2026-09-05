@@ -35,7 +35,7 @@ ARCHIVE_URL="https://storage.googleapis.com/flutter_infra_release/releases/stabl
 # a wrong default here is recoverable without a rebuild (see ApiConfig).
 # Points at the production host, which serves live traffic; the Render instance
 # is intermittently disabled.
-DEFAULT_API_BASE_URL="https://vistar-crm.onrender.com/api/v1/ops-backend"
+DEFAULT_API_BASE_URL="https://https://api.vistarlogitek.com/api/v1/ops-backend"
 
 if [ -z "${API_BASE_URL:-}" ]; then
   API_BASE_URL="$DEFAULT_API_BASE_URL"
