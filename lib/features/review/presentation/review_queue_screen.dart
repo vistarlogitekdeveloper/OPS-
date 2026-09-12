@@ -19,7 +19,7 @@ class ReviewQueueScreen extends ConsumerWidget {
     final controller = ref.read(reviewQueueProvider.notifier);
     final role = ref.watch(authControllerProvider).user?.role;
     final isOps = role == UserRole.opsExcellence;
-    final isRegional = role == UserRole.regionalManager;
+    final isCluster = role == UserRole.clusterManager;
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
 
     return Scaffold(
@@ -49,7 +49,7 @@ class ReviewQueueScreen extends ConsumerWidget {
                 data: (page) => RefreshIndicator(
                   onRefresh: controller.refresh,
                   child: page.items.isEmpty
-                      ? _Empty(isOps: isOps, isRegional: isRegional)
+                      ? _Empty(isOps: isOps, isCluster: isCluster)
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           itemCount: page.items.length,
@@ -72,9 +72,9 @@ class ReviewQueueScreen extends ConsumerWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.isOps, required this.isRegional});
+  const _Empty({required this.isOps, required this.isCluster});
   final bool isOps;
-  final bool isRegional;
+  final bool isCluster;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +108,7 @@ class _Empty extends StatelessWidget {
               Text(
                 isOps
                     ? 'Reports show up here once the cluster manager approves them. Until then they sit with the cluster manager.'
-                    : isRegional
+                    : isCluster
                         ? 'Reports show up here once a site user or project manager files them for the month.'
                         : 'Submissions show up here once they are filed for approval.',
                 style: TextStyle(

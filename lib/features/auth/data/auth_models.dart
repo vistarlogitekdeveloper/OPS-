@@ -1,4 +1,4 @@
-enum UserRole { admin, manager, regionalManager, siteUser, opsExcellence, unknown }
+enum UserRole { admin, manager, clusterManager, siteUser, opsExcellence, unknown }
 
 UserRole roleFromWire(String raw) {
   switch (raw) {
@@ -6,8 +6,12 @@ UserRole roleFromWire(String raw) {
       return UserRole.admin;
     case 'MANAGER':
       return UserRole.manager;
+    // 'REGIONAL_MANAGER' is the pre-rename wire name. Kept so this build works
+    // against a backend that has not been redeployed yet — without it a cluster
+    // manager would fall through to UserRole.unknown and lose every permission.
     case 'REGIONAL_MANAGER':
-      return UserRole.regionalManager;
+    case 'CLUSTER_MANAGER':
+      return UserRole.clusterManager;
     case 'SITE_USER':
       return UserRole.siteUser;
     case 'OPS_EXCELLENCE':
@@ -23,8 +27,7 @@ String roleLabel(UserRole r) {
       return 'Administrator';
     case UserRole.manager:
       return 'Project Manager';
-    case UserRole.regionalManager:
-      // Wire value stays REGIONAL_MANAGER; this is what the business calls it.
+    case UserRole.clusterManager:
       return 'Cluster Manager';
     case UserRole.siteUser:
       return 'Site User';

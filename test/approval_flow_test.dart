@@ -80,7 +80,7 @@ void main() {
     });
 
     test('the approver is labelled the way the business names it', () {
-      expect(roleLabel(UserRole.regionalManager), 'Cluster Manager');
+      expect(roleLabel(UserRole.clusterManager), 'Cluster Manager');
       expect(roleLabel(UserRole.manager), 'Project Manager');
     });
 
@@ -111,7 +111,7 @@ void main() {
 
     testWidgets('the cluster manager reviews and does not file',
         (tester) async {
-      await _pumpHome(tester, UserRole.regionalManager);
+      await _pumpHome(tester, UserRole.clusterManager);
 
       expect(tester.takeException(), isNull);
       expect(find.text('Review queue'), findsOneWidget);

@@ -25,7 +25,7 @@ class HomeScreen extends ConsumerWidget {
             user.role == UserRole.admin);
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
     final isReviewer = user != null &&
-        (user.role == UserRole.regionalManager ||
+        (user.role == UserRole.clusterManager ||
             user.role == UserRole.opsExcellence ||
             user.role == UserRole.admin);
 
@@ -128,7 +128,7 @@ class HomeScreen extends ConsumerWidget {
                                 switch (user.role) {
                                   UserRole.opsExcellence =>
                                     'Open approved submissions to allocate marks',
-                                  UserRole.regionalManager =>
+                                  UserRole.clusterManager =>
                                     'Approve or reject the reports filed for your sites',
                                   _ => 'Approve or reject submitted reports',
                                 },
@@ -417,7 +417,7 @@ class _AccountCard extends StatelessWidget {
         return PillKind.pink;
       case UserRole.manager:
         return PillKind.info;
-      case UserRole.regionalManager:
+      case UserRole.clusterManager:
         return PillKind.violet;
       case UserRole.opsExcellence:
         return PillKind.violet;

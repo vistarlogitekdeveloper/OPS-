@@ -89,7 +89,7 @@ class ReviewDetailScreen extends ConsumerWidget {
 /// The cluster manager takes the one approval decision; admin is the escape
 /// hatch. The project manager files cycles now, so it never sees this panel.
 bool _canSeeDecisionPanel(UserRole? role, Submission sub) {
-  if (role != UserRole.regionalManager && role != UserRole.admin) return false;
+  if (role != UserRole.clusterManager && role != UserRole.admin) return false;
   return isAwaitingApproval(sub.status);
 }
 

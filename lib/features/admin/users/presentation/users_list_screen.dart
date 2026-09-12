@@ -154,7 +154,7 @@ PillKind _pillForRole(UserRole r) {
       return PillKind.pink;
     case UserRole.manager:
       return PillKind.info;
-    case UserRole.regionalManager:
+    case UserRole.clusterManager:
       return PillKind.violet;
     case UserRole.opsExcellence:
       return PillKind.violet;
@@ -186,7 +186,7 @@ class _RoleFilterState extends State<_RoleFilter> {
         DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
         DropdownMenuItem(value: UserRole.manager, child: Text('Manager')),
         DropdownMenuItem(
-            value: UserRole.regionalManager, child: Text('Cluster Manager')),
+            value: UserRole.clusterManager, child: Text('Cluster Manager')),
         DropdownMenuItem(value: UserRole.siteUser, child: Text('Site User')),
         DropdownMenuItem(
             value: UserRole.opsExcellence, child: Text('Ops Excellence')),

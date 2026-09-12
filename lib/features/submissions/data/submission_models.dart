@@ -108,7 +108,7 @@ class SubmissionApproval {
     this.comment,
   });
 
-  /// 'MANAGER' or 'REGIONAL'.
+  /// 'MANAGER' or 'CLUSTER'.
   final String stage;
 
   /// 'APPROVE' or 'REJECT'.
@@ -120,11 +120,16 @@ class SubmissionApproval {
 
   bool get approved => decision == 'APPROVE';
 
+  /// 'REGIONAL' is the pre-rename wire value; historical approval rows and a
+  /// not-yet-redeployed backend both still send it.
+  bool get _isClusterStage => stage == 'CLUSTER' || stage == 'REGIONAL';
+
   /// MANAGER only appears on rows from the retired two-stage flow, where the
   /// project manager took a first approval.
-  String get stageLabel =>
-      stage == 'REGIONAL' ? 'Cluster Manager' : 'Project Manager';
+  String get stageLabel => _isClusterStage ? 'Cluster Manager' : 'Project Manager';
 
+  /// One decision settles a cycle now, so a rejection is always outright — the
+  /// send-back to the project manager no longer exists.
   String get actionLabel => approved ? 'Approved' : 'Rejected';
 
   factory SubmissionApproval.fromJson(Map<String, dynamic> j) {

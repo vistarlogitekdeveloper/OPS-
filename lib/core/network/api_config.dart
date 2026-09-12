@@ -26,8 +26,8 @@ class ApiConfig {
     ),
     BackendOption(
       label: 'Render',
-      host: 'vistar-crm.onrender.com',
-      url: 'https://vistar-crm.onrender.com/api/v1/ops-backend',
+      host: 'api.vistarlogitek.com',
+      url: 'https://api.vistarlogitek.com/api/v1/ops-backend',
     ),
   ];
 
