@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
+import '../../../core/widgets/month_picker.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
 import '../../projects/data/project_model.dart';
@@ -126,17 +127,17 @@ class _CyclePickerScreenState extends ConsumerState<CyclePickerScreen> {
   }
 
   Future<void> _pickMonth() async {
-    final picked = await showDatePicker(
+    final now = DateTime.now();
+    final picked = await showMonthPicker(
       context: context,
-      initialDate: _month,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(DateTime.now().year + 2, 12),
-      initialDatePickerMode: DatePickerMode.year,
+      initial: _month,
+      firstMonth: DateTime(2020),
+      // A cycle can only be filed for a month that has started — there is
+      // nothing to report on a month that hasn't happened.
+      lastMonth: DateTime(now.year, now.month),
       helpText: 'Select reporting month',
     );
-    if (picked != null) {
-      setState(() => _month = DateTime(picked.year, picked.month));
-    }
+    if (picked != null) setState(() => _month = picked);
   }
 
   void _open() {

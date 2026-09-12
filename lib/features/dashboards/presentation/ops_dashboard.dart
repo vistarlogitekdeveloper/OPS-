@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
+import '../../../core/widgets/month_picker.dart';
 import '../../exports/presentation/export_buttons.dart';
 import '../../submissions/data/submission_models.dart';
 import '../data/dashboards_repository.dart';
@@ -83,13 +84,12 @@ class _OpsExcellenceDashboardState
 
   Future<void> _pickMonth() async {
     final parts = _month.split('-');
-    final initial = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-    final picked = await showDatePicker(
+    final now = DateTime.now();
+    final picked = await showMonthPicker(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(DateTime.now().year + 2, 12),
-      initialDatePickerMode: DatePickerMode.year,
+      initial: DateTime(int.parse(parts[0]), int.parse(parts[1])),
+      firstMonth: DateTime(2020),
+      lastMonth: DateTime(now.year, now.month),
       helpText: 'Select the reporting cycle',
     );
     if (picked != null) {

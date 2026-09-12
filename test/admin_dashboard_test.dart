@@ -113,6 +113,23 @@ void main() {
     expect(find.byType(OpsScoreMatrix), findsOneWidget);
   });
 
+  testWidgets('the cluster manager gets a dashboard, not a dead end',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_harness(UserRole.clusterManager, summary));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // The approver oversees a portfolio, so they get the same
+    // compliance-and-trend view the project manager has.
+    expect(find.text('No dashboard for this role.'), findsNothing);
+    expect(find.text('Compliance — your projects'), findsOneWidget);
+    expect(find.text('Average score trend'), findsOneWidget);
+  });
+
   testWidgets('the Ops Excellence view is unchanged — no admin-only switch',
       (tester) async {
     tester.view.physicalSize = const Size(1400, 1800);

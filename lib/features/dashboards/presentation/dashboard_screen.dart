@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
+import '../../../core/widgets/month_picker.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
 import '../../submissions/data/submission_models.dart';
@@ -66,7 +67,12 @@ class DashboardScreen extends ConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 1280),
               child: switch (role) {
                 UserRole.siteUser => const _SiteUserDashboard(),
-                UserRole.manager => const _ManagerDashboard(),
+                // Both the project manager (who files) and the cluster manager
+                // (who approves) oversee a portfolio of sites, so they get the
+                // same compliance-and-trend view of it.
+                UserRole.manager ||
+                UserRole.clusterManager =>
+                  const _ManagerDashboard(),
                 // The Ops team owns the marking, so their landing view is the
                 // cycle review matrix rather than the roll-up charts.
                 UserRole.opsExcellence => const OpsExcellenceDashboard(),
@@ -534,13 +540,12 @@ class _AdminTrendsViewState extends ConsumerState<_AdminTrendsView> {
 
   Future<void> _pickMonth() async {
     final parts = _month.split('-');
-    final initial = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-    final picked = await showDatePicker(
+    final now = DateTime.now();
+    final picked = await showMonthPicker(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(DateTime.now().year + 2, 12),
-      initialDatePickerMode: DatePickerMode.year,
+      initial: DateTime(int.parse(parts[0]), int.parse(parts[1])),
+      firstMonth: DateTime(2020),
+      lastMonth: DateTime(now.year, now.month),
       helpText: 'Select month for project scores',
     );
     if (picked != null) {
