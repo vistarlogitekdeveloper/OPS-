@@ -43,7 +43,7 @@ class _DecisionDialogState extends ConsumerState<DecisionDialog> {
               Text(
                 approve
                     ? 'All items will be marked Approved. The Ops Excellence team can then allocate marks.'
-                    : 'All items will be marked Rejected. The site user can re-upload and resubmit.',
+                    : 'All items will be marked Rejected. Whoever filed the report can re-upload and resubmit.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

@@ -445,7 +445,7 @@ class _RowSheet extends StatelessWidget {
                   kind: switch (row.status!) {
                     SubmissionStatus.approved => PillKind.ok,
                     SubmissionStatus.rejected => PillKind.bad,
-                    SubmissionStatus.managerApproved => PillKind.amber,
+                    SubmissionStatus.managerApproved => PillKind.info,
                     SubmissionStatus.submitted => PillKind.info,
                     _ => PillKind.neutral,
                   },

@@ -24,7 +24,8 @@ String roleLabel(UserRole r) {
     case UserRole.manager:
       return 'Project Manager';
     case UserRole.regionalManager:
-      return 'Regional Manager';
+      // Wire value stays REGIONAL_MANAGER; this is what the business calls it.
+      return 'Cluster Manager';
     case UserRole.siteUser:
       return 'Site User';
     case UserRole.opsExcellence:

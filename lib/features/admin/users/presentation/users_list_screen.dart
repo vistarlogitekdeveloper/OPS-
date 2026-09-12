@@ -185,6 +185,8 @@ class _RoleFilterState extends State<_RoleFilter> {
         DropdownMenuItem(value: null, child: Text('All roles')),
         DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
         DropdownMenuItem(value: UserRole.manager, child: Text('Manager')),
+        DropdownMenuItem(
+            value: UserRole.regionalManager, child: Text('Cluster Manager')),
         DropdownMenuItem(value: UserRole.siteUser, child: Text('Site User')),
         DropdownMenuItem(
             value: UserRole.opsExcellence, child: Text('Ops Excellence')),

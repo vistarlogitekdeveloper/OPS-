@@ -17,12 +17,15 @@ class HomeScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).user;
 
     final isAdmin = user?.role == UserRole.admin;
-    final isSiteOrAdmin = user != null &&
-        (user.role == UserRole.siteUser || user.role == UserRole.admin);
+    // Whoever files the monthly cycle: the site user and the project manager,
+    // plus admin. The manager uploads the reports now instead of approving.
+    final isFiler = user != null &&
+        (user.role == UserRole.siteUser ||
+            user.role == UserRole.manager ||
+            user.role == UserRole.admin);
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
     final isReviewer = user != null &&
-        (user.role == UserRole.manager ||
-            user.role == UserRole.regionalManager ||
+        (user.role == UserRole.regionalManager ||
             user.role == UserRole.opsExcellence ||
             user.role == UserRole.admin);
 
@@ -110,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
                     LayoutBuilder(builder: (context, c) {
                       const gap = 12.0;
                       final tiles = <Widget>[
-                        if (isSiteOrAdmin)
+                        if (isFiler)
                           _ActionCard(
                             icon: Icons.upload_file_outlined,
                             title: 'Monthly submission',
@@ -126,7 +129,7 @@ class HomeScreen extends ConsumerWidget {
                                   UserRole.opsExcellence =>
                                     'Open approved submissions to allocate marks',
                                   UserRole.regionalManager =>
-                                    'Give final approval after the project manager',
+                                    'Approve or reject the reports filed for your sites',
                                   _ => 'Approve or reject submitted reports',
                                 },
                             onTap: () => context.go('/review'),

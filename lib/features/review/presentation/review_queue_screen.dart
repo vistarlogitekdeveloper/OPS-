@@ -107,10 +107,10 @@ class _Empty extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 isOps
-                    ? 'Reports show up here once the regional manager gives final approval. Until then they sit with the approvers.'
+                    ? 'Reports show up here once the cluster manager approves them. Until then they sit with the cluster manager.'
                     : isRegional
-                        ? 'Reports show up here once the project manager approves them. Until then they sit with the project manager.'
-                        : 'Submissions show up here once site users send them for approval.',
+                        ? 'Reports show up here once a site user or project manager files them for the month.'
+                        : 'Submissions show up here once they are filed for approval.',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,

@@ -255,9 +255,11 @@ class _MonthChip extends StatelessWidget {
         Vistar.info.withValues(alpha: 0.16),
         Vistar.info,
       ),
+      // Retired status: reads as "awaiting the cluster manager", same as
+      // SUBMITTED, so it must not look like a distinct stage.
       SubmissionStatus.managerApproved => (
-        Vistar.amber.withValues(alpha: 0.16),
-        Vistar.amber,
+        Vistar.info.withValues(alpha: 0.16),
+        Vistar.info,
       ),
       SubmissionStatus.approved => (
         Vistar.ok.withValues(alpha: 0.16),

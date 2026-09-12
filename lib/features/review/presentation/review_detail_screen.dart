@@ -86,21 +86,11 @@ class ReviewDetailScreen extends ConsumerWidget {
   }
 }
 
-/// The stage a role owns, or null if it never decides. Admin owns every stage.
-SubmissionStatus? _stageFor(UserRole? role) => switch (role) {
-      UserRole.manager => SubmissionStatus.submitted,
-      UserRole.regionalManager => SubmissionStatus.managerApproved,
-      _ => null,
-    };
-
-/// Reviewers see the decision panel on reports sitting at their own stage;
-/// admin sees it at either stage.
+/// The cluster manager takes the one approval decision; admin is the escape
+/// hatch. The project manager files cycles now, so it never sees this panel.
 bool _canSeeDecisionPanel(UserRole? role, Submission sub) {
-  final awaiting = sub.status == SubmissionStatus.submitted ||
-      sub.status == SubmissionStatus.managerApproved;
-  if (role == UserRole.admin) return awaiting;
-  final stage = _stageFor(role);
-  return stage != null && sub.status == stage;
+  if (role != UserRole.regionalManager && role != UserRole.admin) return false;
+  return isAwaitingApproval(sub.status);
 }
 
 PillKind _statusPill(SubmissionStatus s) {
@@ -110,7 +100,7 @@ PillKind _statusPill(SubmissionStatus s) {
     case SubmissionStatus.submitted:
       return PillKind.info;
     case SubmissionStatus.managerApproved:
-      return PillKind.amber;
+      return PillKind.info;
     case SubmissionStatus.approved:
       return PillKind.ok;
     case SubmissionStatus.rejected:
@@ -472,11 +462,7 @@ class _DecisionActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final atRegional = submission.status == SubmissionStatus.managerApproved;
-    final canDecide = submission.status == SubmissionStatus.submitted || atRegional;
-    // A regional 'reject' returns the report to the project manager rather than
-    // bouncing it to the site user, so it is labelled as a send-back.
-    final negativeLabel = atRegional ? 'Send back' : 'Reject';
+    final canDecide = isAwaitingApproval(submission.status);
     return VistarCard(
       cornerS: true,
       padding: const EdgeInsets.all(20),
@@ -487,9 +473,8 @@ class _DecisionActions extends ConsumerWidget {
           Text(
             !canDecide
                 ? 'Already ${submissionStatusLabel(submission.status).toLowerCase()}.'
-                : atRegional
-                    ? 'Final approval. Approving releases the report to Ops Excellence for marks; sending it back returns it to the project manager.'
-                    : 'First approval. Approving passes the report to the regional manager; rejecting returns it to the site user.',
+                : 'Approving releases the report to Ops Excellence for marks; '
+                    'rejecting returns it to whoever filed it.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
@@ -499,8 +484,8 @@ class _DecisionActions extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed:
                       !canDecide ? null : () => _decide(context, ref, false),
-                  icon: Icon(atRegional ? Icons.undo : Icons.close),
-                  label: Text(negativeLabel),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Reject'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: canDecide ? Vistar.bad : null,
                     side: BorderSide(

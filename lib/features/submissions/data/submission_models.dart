@@ -13,12 +13,22 @@ SubmissionStatus submissionStatusFromWire(String s) => switch (s) {
 
 String submissionStatusLabel(SubmissionStatus s) => switch (s) {
       SubmissionStatus.draft => 'Draft',
-      SubmissionStatus.submitted => 'Awaiting Project Manager',
-      SubmissionStatus.managerApproved => 'Awaiting Regional Manager',
+      SubmissionStatus.submitted => 'Awaiting Cluster Manager',
+      // Retired middle state of the old two-stage flow. Any row still carrying
+      // it is waiting on the same person, so it reads the same.
+      SubmissionStatus.managerApproved => 'Awaiting Cluster Manager',
       SubmissionStatus.approved => 'Approved',
       SubmissionStatus.rejected => 'Rejected',
       SubmissionStatus.unknown => 'Unknown',
     };
+
+/// Whether a cycle is filed and waiting on the cluster manager's decision.
+///
+/// [SubmissionStatus.managerApproved] counts: nothing writes it any more, but
+/// the backfill that clears it is applied by hand, so a cycle left mid-chain
+/// must still show up as pending rather than vanishing from the queue.
+bool isAwaitingApproval(SubmissionStatus s) =>
+    s == SubmissionStatus.submitted || s == SubmissionStatus.managerApproved;
 
 enum SubmissionItemStatus { pending, submitted, approved, rejected, unknown }
 
@@ -110,16 +120,12 @@ class SubmissionApproval {
 
   bool get approved => decision == 'APPROVE';
 
+  /// MANAGER only appears on rows from the retired two-stage flow, where the
+  /// project manager took a first approval.
   String get stageLabel =>
-      stage == 'REGIONAL' ? 'Regional Manager' : 'Project Manager';
+      stage == 'REGIONAL' ? 'Cluster Manager' : 'Project Manager';
 
-  /// A regional rejection is a send-back to the project manager, not an
-  /// outright rejection of the report.
-  String get actionLabel => approved
-      ? 'Approved'
-      : stage == 'REGIONAL'
-          ? 'Sent back'
-          : 'Rejected';
+  String get actionLabel => approved ? 'Approved' : 'Rejected';
 
   factory SubmissionApproval.fromJson(Map<String, dynamic> j) {
     final decider = j['decider'] as Map<String, dynamic>?;

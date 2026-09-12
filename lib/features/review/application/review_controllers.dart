@@ -6,9 +6,10 @@ import '../../submissions/data/submission_models.dart';
 import '../../submissions/data/submissions_repository.dart';
 
 /// Work queue for reviewers. The server decides which statuses each role sees:
-/// project manager -> awaiting them, regional manager -> approved by the
-/// project manager, admin -> both stages, Ops Excellence -> approved and
-/// awaiting marks. Further scoped by project assignment on the server.
+/// cluster manager and admin -> filed cycles awaiting approval, Ops Excellence
+/// -> approved and awaiting marks. Project managers file cycles rather than
+/// approving them, so their queue is empty. Further scoped by project
+/// assignment on the server.
 class ReviewQueueController extends AsyncNotifier<PageResult<Submission>> {
   @override
   Future<PageResult<Submission>> build() {
@@ -35,9 +36,9 @@ final submissionDetailProvider =
   return ref.watch(submissionsRepositoryProvider).getById(id);
 });
 
-/// Badge counter for the review section: SUBMITTED awaiting approval for
-/// managers/admin, APPROVED-with-unscored-items for Ops Excellence. Invalidate
-/// after any decision or score so the badge tracks the work.
+/// Badge counter for the review section: filed cycles awaiting approval for the
+/// cluster manager/admin, APPROVED-with-unscored-items for Ops Excellence.
+/// Invalidate after any decision or score so the badge tracks the work.
 final pendingReviewCountProvider =
     FutureProvider<PendingReviewCount>((ref) async {
   final user = ref.watch(authControllerProvider).user;

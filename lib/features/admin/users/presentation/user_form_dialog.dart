@@ -144,9 +144,9 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                     UserRole.siteUser =>
                       'Pick the site this user is responsible for.',
                     UserRole.manager =>
-                      'Pick the projects this project manager approves first.',
+                      'Pick the projects this project manager files reports for.',
                     UserRole.regionalManager =>
-                      'Pick the projects this regional manager approves after the project manager.',
+                      'Pick the projects this cluster manager approves.',
                     _ => 'Admins and Ops Excellence see all projects regardless.',
                   },
                   style: theme.textTheme.bodySmall

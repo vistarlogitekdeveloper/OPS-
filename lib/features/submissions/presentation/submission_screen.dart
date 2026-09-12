@@ -168,7 +168,7 @@ class _CycleHeader extends StatelessWidget {
       case SubmissionStatus.submitted:
         return PillKind.info;
       case SubmissionStatus.managerApproved:
-        return PillKind.amber;
+        return PillKind.info;
       case SubmissionStatus.approved:
         return PillKind.ok;
       case SubmissionStatus.rejected:
