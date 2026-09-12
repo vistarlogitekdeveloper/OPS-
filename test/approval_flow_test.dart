@@ -99,6 +99,30 @@ void main() {
     });
   });
 
+  group('a filed cycle is frozen while the approver has it', () {
+    // The backend refuses an upload in these states; the tiles must agree, or
+    // the filer only finds out via a 409 after picking a file.
+    test('files are editable only while the cycle is the filer\'s', () {
+      expect(isEditableByFiler(SubmissionStatus.draft), isTrue);
+      expect(isEditableByFiler(SubmissionStatus.rejected), isTrue);
+      // With one approval stage, letting files change here would mean the
+      // cluster manager approving evidence nobody reviewed.
+      expect(isEditableByFiler(SubmissionStatus.submitted), isFalse);
+      expect(isEditableByFiler(SubmissionStatus.managerApproved), isFalse);
+      expect(isEditableByFiler(SubmissionStatus.approved), isFalse);
+    });
+
+    test('editable and awaiting-approval never overlap', () {
+      for (final s in SubmissionStatus.values) {
+        expect(
+          isEditableByFiler(s) && isAwaitingApproval(s),
+          isFalse,
+          reason: '$s cannot be both the filer\'s and the approver\'s',
+        );
+      }
+    });
+  });
+
   group('home screen routes each role to its half of the flow', () {
     testWidgets('the project manager files cycles and has no review queue',
         (tester) async {

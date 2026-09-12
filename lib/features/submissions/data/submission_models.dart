@@ -30,6 +30,16 @@ String submissionStatusLabel(SubmissionStatus s) => switch (s) {
 bool isAwaitingApproval(SubmissionStatus s) =>
     s == SubmissionStatus.submitted || s == SubmissionStatus.managerApproved;
 
+/// Whether whoever files the cycle may still change its files.
+///
+/// A cycle is either the filer's or the approver's, never both: it is editable
+/// while it is a fresh draft or one the cluster manager sent back, and frozen
+/// from the moment it is filed. With a single approval stage that freeze is
+/// the only thing guaranteeing the approver decided on the files they actually
+/// saw. The backend enforces the same rule on /submissions/upload.
+bool isEditableByFiler(SubmissionStatus s) =>
+    s == SubmissionStatus.draft || s == SubmissionStatus.rejected;
+
 enum SubmissionItemStatus { pending, submitted, approved, rejected, unknown }
 
 SubmissionItemStatus itemStatusFromWire(String s) => switch (s) {

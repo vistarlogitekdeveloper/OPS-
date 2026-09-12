@@ -262,6 +262,11 @@ class _Tiles extends ConsumerWidget {
               progress: progressByCat[c.id],
               selection: selection,
               controller: controller,
+              // A filed cycle belongs to the approver until they decide, so
+              // the files are frozen while it is with them.
+              locked: !isEditableByFiler(
+                snapshot.submission?.status ?? SubmissionStatus.draft,
+              ),
             ),
           ),
       ],
@@ -276,6 +281,7 @@ class _CategoryTile extends ConsumerWidget {
     required this.progress,
     required this.selection,
     required this.controller,
+    required this.locked,
   });
 
   final ReportCategory category;
@@ -283,6 +289,7 @@ class _CategoryTile extends ConsumerWidget {
   final double? progress;
   final CycleSelection selection;
   final CycleController controller;
+  final bool locked;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -373,9 +380,15 @@ class _CategoryTile extends ConsumerWidget {
               const Spacer(),
               RibbonButton(
                 small: true,
-                onPressed: uploading ? null : () => _pickAndUpload(context, ref),
-                icon: Icons.upload_file,
-                label: hasFile ? 'Replace' : 'Upload',
+                onPressed: uploading || locked
+                    ? null
+                    : () => _pickAndUpload(context, ref),
+                icon: locked ? Icons.lock_outline : Icons.upload_file,
+                label: locked
+                    ? 'Locked'
+                    : hasFile
+                        ? 'Replace'
+                        : 'Upload',
               ),
             ],
           ),
@@ -449,10 +462,15 @@ class _CategoryTile extends ConsumerWidget {
       messenger.showSnackBar(
         SnackBar(
           content: Text(err.message),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: () => _doUpload(messenger, bytes, name),
-          ),
+          // A refusal (not allowed, wrong file type, already filed) returns the
+          // same answer however many times it is sent, so offering Retry there
+          // just invites the user to hit the same wall.
+          action: err.isRetryable
+              ? SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () => _doUpload(messenger, bytes, name),
+                )
+              : null,
         ),
       );
     }

@@ -10,6 +10,20 @@ class ApiError {
   final String message;
   final String? code;
 
+  /// Whether running the same request again could plausibly succeed.
+  ///
+  /// A 4xx is the server's settled answer — "you may not do this", "that file
+  /// type isn't allowed", "this report is already filed" — and repeating the
+  /// request returns the same thing, so offering a retry only invites the user
+  /// to hit the same wall. Transport failures and 5xx are worth another go, as
+  /// are the two status codes that explicitly mean "try again": 408 and 429.
+  bool get isRetryable {
+    final s = status;
+    if (s == null) return true; // no response at all — network or timeout
+    if (s == 408 || s == 429) return true;
+    return s >= 500;
+  }
+
   static ApiError from(Object e) {
     if (e is DioException) {
       final data = e.response?.data;
