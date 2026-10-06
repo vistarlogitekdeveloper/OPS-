@@ -18,6 +18,7 @@ import '../../features/review/presentation/review_queue_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/submissions/presentation/cycle_picker_screen.dart';
 import '../../features/submissions/presentation/submission_screen.dart';
+import '../telemetry/telemetry.dart';
 
 /// Wires routes against the auth controller. While the controller is restoring
 /// the session on app start, we show a splash and skip redirects so the user
@@ -26,7 +27,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthRefreshNotifier(ref);
   ref.onDispose(notifier.dispose);
 
-  return GoRouter(
+  return _withScreenViews(ref, GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: false,
     refreshListenable: notifier,
@@ -116,8 +117,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) => Scaffold(
       body: Center(child: Text('Route not found: ${state.uri}')),
     ),
-  );
+  ));
 });
+
+/// Reports each screen the router shows to usage analytics (by route
+/// pattern; see Telemetry.screen).
+GoRouter _withScreenViews(Ref ref, GoRouter router) {
+  if (!Telemetry.enabled) return router;
+  // The delegate, not the route-information provider: it also hears the
+  // location changes a redirect makes (sign-in landing on home).
+  void report() {
+    try {
+      // While the session is being restored '/' is a spinner, not a screen.
+      if (ref.read(authControllerProvider).status == AuthStatus.unknown) return;
+      final config = router.routerDelegate.currentConfiguration;
+      if (config.isEmpty) return; // not parsed yet; the next change reports
+      // A context.push (a site opened from the projects list) leaves the
+      // configuration's uri where it was; the pushed screen is the last match.
+      final last = config.lastOrNull;
+      final uri = last is ImperativeRouteMatch ? last.matches.uri : config.uri;
+      Telemetry.screen(uri.toString());
+    } catch (_) {
+      // No configuration yet; the next change reports.
+    }
+  }
+
+  router.routerDelegate.addListener(report);
+  ref.onDispose(() => router.routerDelegate.removeListener(report));
+  // A restored session stays on '/', which the delegate does not announce
+  // again: report once the restore settles (after its redirect, if any).
+  ref.listen<AuthState>(authControllerProvider, (prev, next) {
+    if (prev?.status == AuthStatus.unknown && next.status != AuthStatus.unknown) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => report());
+    }
+  });
+  // The listener only hears changes: report the starting screen too.
+  WidgetsBinding.instance.addPostFrameCallback((_) => report());
+  return router;
+}
 
 class _AuthRefreshNotifier extends ChangeNotifier {
   _AuthRefreshNotifier(this._ref) {

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../storage/secure_token_store.dart';
+import '../telemetry/telemetry.dart';
 import 'api_config.dart';
 import 'auth_interceptor.dart';
 import 'backend_controller.dart';
@@ -19,6 +20,10 @@ final unauthenticatedDioProvider = Provider<Dio>((ref) {
     contentType: 'application/json',
     responseType: ResponseType.json,
   ));
+  // Usage analytics (core/telemetry/telemetry.dart). This client also re-sends
+  // a request the auth interceptor retried after a token refresh, so the
+  // retried write is counted here, once.
+  if (Telemetry.enabled) dio.interceptors.add(TelemetryInterceptor());
   return dio;
 });
 
@@ -38,6 +43,13 @@ final apiClientProvider = Provider<Dio>((ref) {
     responseType: ResponseType.json,
   ));
 
+  // Usage analytics: named actions and failed calls; changes nothing about a
+  // request (core/telemetry/telemetry.dart). Ahead of AuthInterceptor on
+  // purpose: a request it retries after a refresh is re-sent through
+  // unauthenticatedDioProvider, which counts it, and nothing the retry
+  // returns comes back through an interceptor before AuthInterceptor, so
+  // every call is counted once.
+  if (Telemetry.enabled) dio.interceptors.add(TelemetryInterceptor());
   dio.interceptors.add(AuthInterceptor(
     tokenStore: tokenStore,
     refreshClient: unauth,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_token_store.dart';
+import '../../../core/telemetry/telemetry.dart';
 import '../data/auth_api.dart';
 import '../data/auth_models.dart';
 
@@ -42,6 +43,8 @@ class AuthController extends Notifier<AuthState> {
 
     // React to the interceptor wiping tokens.
     ref.listen<int>(authSessionInvalidatedProvider, (_, _) {
+      // An expired session is a sign-out too (not awaited).
+      if (state.isAuthenticated) Telemetry.signedOut();
       state = AuthState.anonymous;
     });
 
@@ -65,6 +68,8 @@ class AuthController extends Notifier<AuthState> {
     }
     try {
       final user = await _api.me();
+      // Before the state change, so the screen it leads to is already theirs.
+      _identify(user);
       state = AuthState(status: AuthStatus.authenticated, user: user);
     } catch (_) {
       try {
@@ -79,6 +84,8 @@ class AuthController extends Notifier<AuthState> {
     try {
       final session = await _api.login(username: username, password: password);
       await _store.write(TokenPair(access: session.accessToken, refresh: session.refreshToken));
+      // Before the state change, so the screen it leads to is already theirs.
+      _identify(session.user);
       state = AuthState(status: AuthStatus.authenticated, user: session.user);
       return true;
     } on DioException catch (e) {
@@ -98,6 +105,8 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // Not awaited: sign-out never waits for analytics.
+    Telemetry.signedOut();
     final pair = await _store.read();
     try {
       if (pair != null) {
@@ -109,6 +118,10 @@ class AuthController extends Notifier<AuthState> {
     await _store.clear();
     state = AuthState.anonymous;
   }
+
+  /// Usage analytics: who this is (id and role only). Fire and forget.
+  void _identify(AuthUser user) =>
+      Telemetry.signedIn(userId: user.id, role: user.role.name);
 
   void clearError() {
     if (state.errorMessage != null) {

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/network/backend_controller.dart';
+import 'core/telemetry/telemetry.dart';
 
 void main() {
   // Catch widget-tree errors. In debug we let Flutter's default red-screen
@@ -30,6 +31,10 @@ void main() {
       // Resolve which backend to talk to before the first request can fire, so
       // the Dio clients are built with the right base URL from the start.
       final backendUrl = await BackendUrlController.load();
+      // Usage analytics: off unless the build carries ET_APP_ID + ET_WRITE_KEY
+      // (core/telemetry/telemetry.dart); then waits at most 2 s, never throws.
+      // Off, nothing runs here, exactly as before.
+      if (Telemetry.enabled) await Telemetry.init(apiBaseUrl: backendUrl);
       runApp(
         ProviderScope(
           overrides: [initialBackendUrlProvider.overrideWithValue(backendUrl)],
@@ -39,6 +44,7 @@ void main() {
     },
     (error, stack) {
       debugPrint('Uncaught zone error: $error\n$stack');
+      Telemetry.zoneError(error); // type only; a no-op when analytics is off
     },
   );
 }

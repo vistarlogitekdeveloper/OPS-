@@ -19,8 +19,10 @@
 # missing dashboard variable can't break the deploy. Set it explicitly to point
 # a branch build at a different backend.
 #
-# Optional env var:
+# Optional env vars:
 #   FLUTTER_VERSION -> defaults to the version below; override to upgrade.
+#   ET_APP_ID + ET_WRITE_KEY -> switch usage analytics on (both, or neither;
+#                    see below). ET_BASE_URL optional.
 
 set -euo pipefail
 
@@ -78,7 +80,24 @@ flutter --version
 flutter config --enable-web
 flutter pub get
 
+DART_DEFINES=(--dart-define=API_BASE_URL="${API_BASE_URL}")
+
+# Usage analytics (lib/core/telemetry/telemetry.dart). On only when BOTH build
+# variables are set (Settings -> Build -> Variables and secrets): ET_APP_ID
+# (ops_app) and ET_WRITE_KEY (as a secret). Either missing: no define is passed
+# and the app sends nothing, exactly as before. ET_BASE_URL is optional (events
+# go to the API host by default). Never echo the key.
+if [ -n "${ET_APP_ID:-}" ] && [ -n "${ET_WRITE_KEY:-}" ]; then
+  DART_DEFINES+=(--dart-define=ET_APP_ID="${ET_APP_ID}" --dart-define=ET_WRITE_KEY="${ET_WRITE_KEY}")
+  if [ -n "${ET_BASE_URL:-}" ]; then
+    DART_DEFINES+=(--dart-define=ET_BASE_URL="${ET_BASE_URL}")
+  fi
+  echo "==> Usage analytics on, as ${ET_APP_ID}"
+else
+  echo "==> Usage analytics off (ET_APP_ID / ET_WRITE_KEY not set)"
+fi
+
 echo "==> Building web bundle (API_BASE_URL=${API_BASE_URL})"
-flutter build web --release --dart-define=API_BASE_URL="${API_BASE_URL}"
+flutter build web --release "${DART_DEFINES[@]}"
 
 echo "==> Done. Build output directory: build/web"
