@@ -100,14 +100,24 @@ class AdminShell extends ConsumerWidget {
           if (user != null)
             Padding(
               padding: const EdgeInsets.only(right: 16),
+              // On a phone, the avatar alone: the back button, the title and
+              // a long username do not fit in one bar, and the overflow was
+              // reported from every admin screen.
               child: Row(
                 children: [
                   VistarAvatar(label: user.name, size: 30),
-                  const SizedBox(width: 8),
-                  Text(
-                    user.username,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  if (useRail) ...[
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      child: Text(
+                        user.username,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
