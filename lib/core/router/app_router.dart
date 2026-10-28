@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/admin/audit/presentation/audit_list_screen.dart';
 import '../../features/admin/categories/presentation/categories_list_screen.dart';
+import '../../features/admin/emails/presentation/emails_screen.dart';
 import '../../features/admin/presentation/admin_shell.dart';
 import '../../features/admin/projects/presentation/projects_list_screen.dart';
 import '../../features/admin/users/presentation/users_list_screen.dart';
@@ -110,6 +111,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/audit',
             builder: (context, state) => const AuditListScreen(),
+          ),
+          GoRoute(
+            path: '/admin/emails',
+            builder: (context, state) => const EmailsScreen(),
           ),
         ],
       ),

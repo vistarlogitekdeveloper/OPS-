@@ -21,9 +21,32 @@ class CycleSelection {
 /// Tracks the active project + month for the site-user submission flow.
 final cycleSelectionProvider = StateProvider<CycleSelection?>((ref) => null);
 
-/// Per-tile upload progress, keyed by categoryId. 0.0..1.0.
+/// Progress of one point's upload batch: file [current] of [total], and the
+/// whole batch's share sent (0.0..1.0).
+class UploadProgress {
+  const UploadProgress({required this.current, required this.total, required this.fraction});
+  final int current;
+  final int total;
+  final double fraction;
+}
+
+/// Per-tile upload progress, keyed by categoryId.
 final uploadProgressProvider =
-    StateProvider<Map<String, double>>((ref) => const <String, double>{});
+    StateProvider<Map<String, UploadProgress>>((ref) => const <String, UploadProgress>{});
+
+/// A picked file waiting to go up.
+class PendingUpload {
+  const PendingUpload({required this.bytes, required this.fileName});
+  final Uint8List bytes;
+  final String fileName;
+}
+
+/// A file of a batch the server refused or that never arrived.
+class UploadFailure {
+  const UploadFailure({required this.upload, required this.error});
+  final PendingUpload upload;
+  final Object error;
+}
 
 /// Loads the cycle's submission + active categories.
 final cycleSnapshotProvider =
@@ -39,29 +62,49 @@ class CycleController {
   final Ref ref;
   final CycleSelection selection;
 
-  Future<void> upload({
+  /// Adds [files] to a point, one request each, in order. A refused file does
+  /// not stop the rest; the ones that failed come back for the caller to show.
+  Future<List<UploadFailure>> uploadFiles({
     required String categoryId,
-    required Uint8List bytes,
-    required String fileName,
+    required List<PendingUpload> files,
   }) async {
     final progress = ref.read(uploadProgressProvider.notifier);
-    progress.update((m) => {...m, categoryId: 0});
+    final failures = <UploadFailure>[];
+    void report(int index, double filePart) => progress.update((m) => {
+          ...m,
+          categoryId: UploadProgress(
+            current: index + 1,
+            total: files.length,
+            fraction: ((index + filePart) / files.length).clamp(0.0, 1.0),
+          ),
+        });
     try {
-      await ref.read(submissionsRepositoryProvider).uploadFile(
-            projectId: selection.projectId,
-            month: selection.month,
-            categoryId: categoryId,
-            bytes: bytes,
-            fileName: fileName,
-            onProgress: (sent, total) {
-              if (total <= 0) return;
-              final pct = (sent / total).clamp(0.0, 1.0);
-              progress.update((m) => {...m, categoryId: pct});
-            },
-          );
+      for (var i = 0; i < files.length; i++) {
+        report(i, 0);
+        try {
+          await ref.read(submissionsRepositoryProvider).uploadFile(
+                projectId: selection.projectId,
+                month: selection.month,
+                categoryId: categoryId,
+                bytes: files[i].bytes,
+                fileName: files[i].fileName,
+                onProgress: (sent, total) {
+                  if (total > 0) report(i, (sent / total).clamp(0.0, 1.0));
+                },
+              );
+        } catch (e) {
+          failures.add(UploadFailure(upload: files[i], error: e));
+        }
+      }
     } finally {
       progress.update((m) => {...m}..remove(categoryId));
     }
+    ref.invalidate(cycleSnapshotProvider(selection));
+    return failures;
+  }
+
+  Future<void> removeFile(String fileId) async {
+    await ref.read(submissionsRepositoryProvider).removeFile(fileId);
     ref.invalidate(cycleSnapshotProvider(selection));
   }
 

@@ -98,11 +98,15 @@ class SubmissionsRepository {
     required Uint8List bytes,
     required String fileName,
     void Function(int sent, int total)? onProgress,
+    // A point holds several files: add to them. False replaces them all,
+    // which is the backend's default.
+    bool append = true,
   }) async {
     final form = FormData.fromMap({
       'projectId': projectId,
       'month': month,
       'categoryId': categoryId,
+      'mode': append ? 'append' : 'replace',
       'file': MultipartFile.fromBytes(bytes, filename: fileName),
     });
     final res = await _dio.post<Map<String, dynamic>>(
@@ -124,6 +128,23 @@ class SubmissionsRepository {
       options: Options(responseType: ResponseType.bytes),
     );
     return Uint8List.fromList(res.data!);
+  }
+
+  /// One file of a point. A stand-in file (null id, from a backend that
+  /// predates multiple files) is the item's own and downloads through it.
+  Future<Uint8List> downloadFile(SubmissionItem item, ItemFile file) async {
+    if (file.id == null) return downloadItem(item.id);
+    final res = await _dio.get<List<int>>(
+      '/submissions/files/${file.id}/download',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(res.data!);
+  }
+
+  /// Removes one file from its point (the point goes with its last file).
+  Future<Submission> removeFile(String fileId) async {
+    final res = await _dio.delete<Map<String, dynamic>>('/submissions/files/$fileId');
+    return Submission.fromJson(res.data!['submission'] as Map<String, dynamic>);
   }
 }
 

@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/errors/api_error.dart';
-import '../../../core/platform/download_helper.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
-import '../../categories/data/category_model.dart';
 import '../../submissions/data/submission_models.dart';
-import '../../submissions/data/submissions_repository.dart';
+import '../../submissions/presentation/item_files_list.dart';
 import '../application/review_controllers.dart';
 import 'decision_dialog.dart';
 import 'score_item_dialog.dart';
@@ -226,7 +223,6 @@ class _ItemCard extends ConsumerStatefulWidget {
 }
 
 class _ItemCardState extends ConsumerState<_ItemCard> {
-  bool _downloading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +252,7 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${item.fileName} · ${_kb(item.fileSize)} KB · ${fileTypeLabel(item.fileType)}',
+                      item.files.length == 1 ? '1 file' : '${item.files.length} files',
                       style: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 12.5,
@@ -271,6 +267,9 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          // Every file of the point, each downloadable on its own.
+          ItemFilesList(item: item),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -325,69 +324,22 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
             const SizedBox(height: 12),
             _OpsRemark(text: item.opsRemark!.trim()),
           ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              OutlinedButton.icon(
-                onPressed: _downloading ? null : _download,
-                icon: _downloading
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.download_outlined),
-                label: const Text('Download'),
+          if (widget.canScore) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerRight,
+              child: RibbonButton(
+                small: true,
+                onPressed: _openScore,
+                icon: Icons.scoreboard_outlined,
+                label: hasMarks ? 'Edit score' : 'Score',
               ),
-              if (widget.canScore) ...[
-                const Spacer(),
-                RibbonButton(
-                  small: true,
-                  onPressed: _openScore,
-                  icon: Icons.scoreboard_outlined,
-                  label: hasMarks ? 'Edit score' : 'Score',
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
   }
-
-  Future<void> _download() async {
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _downloading = true);
-    try {
-      final bytes = await ref
-          .read(submissionsRepositoryProvider)
-          .downloadItem(widget.item.id);
-      final where = await saveBytes(
-        bytes: bytes,
-        filename: widget.item.fileName,
-        mimeType: _mimeFor(widget.item.fileType),
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text('Saved ${widget.item.fileName} to $where.')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(ApiError.from(e).message)));
-    } finally {
-      if (mounted) setState(() => _downloading = false);
-    }
-  }
-
-  static String _mimeFor(FileTypeCode t) => switch (t) {
-        FileTypeCode.pdf => 'application/pdf',
-        FileTypeCode.ppt =>
-          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        FileTypeCode.excel =>
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        FileTypeCode.jpeg => 'image/jpeg',
-        FileTypeCode.word =>
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        FileTypeCode.unknown => 'application/octet-stream',
-      };
 
   Future<void> _openScore() async {
     final updated = await showDialog<bool>(
@@ -403,7 +355,6 @@ class _ItemCardState extends ConsumerState<_ItemCard> {
     }
   }
 
-  String _kb(int bytes) => (bytes / 1024).toStringAsFixed(1);
 }
 
 /// Ops Excellence's note for an item, shown once a remark has been recorded.

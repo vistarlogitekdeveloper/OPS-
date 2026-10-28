@@ -13,6 +13,7 @@ import '../../../core/widgets/async_value_view.dart';
 import '../../categories/data/category_model.dart';
 import '../application/cycle_controller.dart';
 import '../data/submission_models.dart';
+import 'item_files_list.dart';
 
 class SubmissionScreen extends ConsumerWidget {
   const SubmissionScreen({super.key});
@@ -150,7 +151,8 @@ class _CycleHeader extends StatelessWidget {
               ),
               const SizedBox(width: 32),
               _Metric(
-                label: 'Files',
+                // Points with at least one file; a point may hold several.
+                label: 'Points filed',
                 value: '${sub?.items.length ?? 0}',
                 suffix: '/ ${snap.categories.where((c) => c.isActive).length}',
               ),
@@ -286,7 +288,7 @@ class _CategoryTile extends ConsumerWidget {
 
   final ReportCategory category;
   final SubmissionItem? item;
-  final double? progress;
+  final UploadProgress? progress;
   final CycleSelection selection;
   final CycleController controller;
   final bool locked;
@@ -336,9 +338,10 @@ class _CategoryTile extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           if (hasFile)
-            Text(
-              '${item!.fileName} · ${_kb(item!.fileSize)} KB',
-              style: theme.textTheme.bodyMedium,
+            ItemFilesList(
+              item: item!,
+              // Files are frozen while the cycle is with the approver.
+              onRemove: locked ? null : (f) => controller.removeFile(f.id!),
             )
           else
             Text(
@@ -350,7 +353,7 @@ class _CategoryTile extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: progress,
+                value: progress!.fraction,
                 minHeight: 6,
                 backgroundColor: theme.colorScheme.surfaceContainerHigh,
                 valueColor:
@@ -359,7 +362,8 @@ class _CategoryTile extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${((progress ?? 0) * 100).toStringAsFixed(0)}%',
+              '${progress!.total > 1 ? 'File ${progress!.current} of ${progress!.total} · ' : ''}'
+              '${(progress!.fraction * 100).toStringAsFixed(0)}%',
               style: theme.textTheme.bodySmall,
             ),
           ],
@@ -387,8 +391,8 @@ class _CategoryTile extends ConsumerWidget {
                 label: locked
                     ? 'Locked'
                     : hasFile
-                        ? 'Replace'
-                        : 'Upload',
+                        ? 'Add files'
+                        : 'Upload files',
               ),
             ],
           ),
@@ -431,6 +435,7 @@ class _CategoryTile extends ConsumerWidget {
       picked = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: exts,
+        allowMultiple: true,
         withData: true,
       );
     } catch (e) {
@@ -438,45 +443,94 @@ class _CategoryTile extends ConsumerWidget {
       return;
     }
     if (picked == null || picked.files.isEmpty) return;
-    final file = picked.files.first;
-    final Uint8List? bytes = file.bytes;
-    if (bytes == null) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Could not read the selected file.')));
-      return;
+    final uploads = <PendingUpload>[];
+    final unreadable = <String>[];
+    for (final f in picked.files) {
+      final Uint8List? bytes = f.bytes;
+      if (bytes == null) {
+        unreadable.add(f.name);
+      } else {
+        uploads.add(PendingUpload(bytes: bytes, fileName: f.name));
+      }
     }
-    await _doUpload(messenger, bytes, file.name);
+    if (unreadable.isNotEmpty) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('Could not read: ${unreadable.join(', ')}')));
+    }
+    if (uploads.isEmpty || !context.mounted) return;
+    await _doUpload(context, messenger, uploads);
   }
 
   Future<void> _doUpload(
+    BuildContext context,
     ScaffoldMessengerState messenger,
-    Uint8List bytes,
-    String name,
+    List<PendingUpload> uploads,
   ) async {
-    try {
-      await controller.upload(
-          categoryId: category.id, bytes: bytes, fileName: name);
-      messenger.showSnackBar(SnackBar(content: Text('$name uploaded.')));
-    } catch (e) {
-      final err = ApiError.from(e);
+    final failures = await controller.uploadFiles(categoryId: category.id, files: uploads);
+    final sent = uploads.length - failures.length;
+    if (failures.isEmpty) {
+      messenger.showSnackBar(SnackBar(
+          content: Text(uploads.length == 1
+              ? '${uploads.single.fileName} uploaded.'
+              : '$sent files uploaded.')));
+      return;
+    }
+    if (uploads.length == 1) {
+      final err = ApiError.from(failures.single.error);
       messenger.showSnackBar(
         SnackBar(
           content: Text(err.message),
           // A refusal (not allowed, wrong file type, already filed) returns the
           // same answer however many times it is sent, so offering Retry there
           // just invites the user to hit the same wall.
-          action: err.isRetryable
+          action: err.isRetryable && context.mounted
               ? SnackBarAction(
                   label: 'Retry',
-                  onPressed: () => _doUpload(messenger, bytes, name),
+                  onPressed: () => _doUpload(context, messenger, uploads),
                 )
               : null,
         ),
       );
+      return;
     }
+    if (!context.mounted) return;
+    // Several files: name each one that failed and why.
+    final retryable = [
+      for (final f in failures)
+        if (ApiError.from(f.error).isRetryable) f.upload,
+    ];
+    final retry = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$sent of ${uploads.length} files uploaded'),
+        content: SizedBox(
+          width: 460,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final f in failures)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.error_outline, color: Vistar.bad),
+                  title: Text(f.upload.fileName),
+                  subtitle: Text(ApiError.from(f.error).message),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Close')),
+          if (retryable.isNotEmpty)
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text('Retry ${retryable.length}'),
+            ),
+        ],
+      ),
+    );
+    if (retry == true && context.mounted) await _doUpload(context, messenger, retryable);
   }
-
-  String _kb(int bytes) => (bytes / 1024).toStringAsFixed(1);
 }
 
 class _SubmitButton extends StatefulWidget {

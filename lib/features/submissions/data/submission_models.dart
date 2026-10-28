@@ -58,6 +58,52 @@ String itemStatusLabel(SubmissionItemStatus s) => switch (s) {
       SubmissionItemStatus.unknown => 'Unknown',
     };
 
+/// One file attached to a point. A point holds several (backend: the item's
+/// attached FileVersions, sent as `files`).
+class ItemFile {
+  const ItemFile({
+    required this.id,
+    required this.fileName,
+    required this.fileType,
+    required this.fileSize,
+    this.uploadedAt,
+    this.uploaderName,
+  });
+
+  /// Null only for the stand-in built from a backend that predates multiple
+  /// files; such a file downloads through its item instead.
+  final String? id;
+  final String fileName;
+  final FileTypeCode fileType;
+  final int fileSize;
+  final DateTime? uploadedAt;
+  final String? uploaderName;
+
+  factory ItemFile.fromJson(Map<String, dynamic> j) => ItemFile(
+        id: j['id'] as String,
+        fileName: j['fileName'] as String,
+        // Null on rows from before multiple files; the name still tells.
+        fileType: j['fileType'] != null
+            ? fileTypeFromWire(j['fileType'] as String)
+            : fileTypeFromName(j['fileName'] as String),
+        fileSize: j['fileSize'] as int,
+        uploadedAt: j['uploadedAt'] != null ? DateTime.parse(j['uploadedAt'] as String) : null,
+        uploaderName: (j['uploader'] as Map<String, dynamic>?)?['name'] as String?,
+      );
+}
+
+FileTypeCode fileTypeFromName(String name) {
+  final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  return switch (ext) {
+    'pdf' => FileTypeCode.pdf,
+    'ppt' || 'pptx' => FileTypeCode.ppt,
+    'xls' || 'xlsx' => FileTypeCode.excel,
+    'jpg' || 'jpeg' => FileTypeCode.jpeg,
+    'doc' || 'docx' => FileTypeCode.word,
+    _ => FileTypeCode.unknown,
+  };
+}
+
 class SubmissionItem {
   const SubmissionItem({
     required this.id,
@@ -72,6 +118,7 @@ class SubmissionItem {
     required this.category,
     this.opsRemark,
     this.uploadedAt,
+    this.files = const [],
   });
 
   final String id;
@@ -89,22 +136,47 @@ class SubmissionItem {
   final DateTime? uploadedAt;
   final ReportCategory? category;
 
-  factory SubmissionItem.fromJson(Map<String, dynamic> j) => SubmissionItem(
-        id: j['id'] as String,
-        submissionId: j['submissionId'] as String,
-        categoryId: j['categoryId'] as String,
-        fileName: j['fileName'] as String,
-        fileType: fileTypeFromWire(j['fileType'] as String),
-        fileSize: j['fileSize'] as int,
-        status: itemStatusFromWire(j['status'] as String),
-        awardedMarks: j['awardedMarks'] as int?,
-        reviewerComment: j['reviewerComment'] as String?,
-        opsRemark: j['opsRemark'] as String?,
-        uploadedAt: j['uploadedAt'] != null ? DateTime.parse(j['uploadedAt'] as String) : null,
-        category: j['category'] != null
-            ? ReportCategory.fromJson(j['category'] as Map<String, dynamic>)
-            : null,
-      );
+  /// Every file attached to the point, oldest first. fileName / fileType /
+  /// fileSize above describe the newest of them.
+  final List<ItemFile> files;
+
+  factory SubmissionItem.fromJson(Map<String, dynamic> j) {
+    final fileName = j['fileName'] as String;
+    final fileType = fileTypeFromWire(j['fileType'] as String);
+    final fileSize = j['fileSize'] as int;
+    final uploadedAt =
+        j['uploadedAt'] != null ? DateTime.parse(j['uploadedAt'] as String) : null;
+    final rawFiles = j['files'] as List?;
+    return SubmissionItem(
+      id: j['id'] as String,
+      submissionId: j['submissionId'] as String,
+      categoryId: j['categoryId'] as String,
+      fileName: fileName,
+      fileType: fileType,
+      fileSize: fileSize,
+      status: itemStatusFromWire(j['status'] as String),
+      awardedMarks: j['awardedMarks'] as int?,
+      reviewerComment: j['reviewerComment'] as String?,
+      opsRemark: j['opsRemark'] as String?,
+      uploadedAt: uploadedAt,
+      category: j['category'] != null
+          ? ReportCategory.fromJson(j['category'] as Map<String, dynamic>)
+          : null,
+      // A backend from before multiple files sends no `files`: its one file
+      // is the item's own.
+      files: rawFiles != null
+          ? [for (final f in rawFiles) ItemFile.fromJson(f as Map<String, dynamic>)]
+          : [
+              ItemFile(
+                id: null,
+                fileName: fileName,
+                fileType: fileType,
+                fileSize: fileSize,
+                uploadedAt: uploadedAt,
+              ),
+            ],
+    );
+  }
 }
 
 /// One recorded decision in the approval chain.

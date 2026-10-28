@@ -23,6 +23,7 @@ const adminSections = [
   AdminSection(label: 'Categories', icon: Icons.category_outlined, path: '/admin/categories'),
   AdminSection(label: 'Users', icon: Icons.people_outline, path: '/admin/users'),
   AdminSection(label: 'Audit', icon: Icons.history_outlined, path: '/admin/audit'),
+  AdminSection(label: 'Emails', icon: Icons.mail_outline, path: '/admin/emails'),
 ];
 
 class AdminShell extends ConsumerWidget {
