@@ -16,7 +16,8 @@ final _siteProjectsProvider = FutureProvider<List<Project>>((ref) async {
   final user = ref.watch(authControllerProvider).user;
   final all = await ref.watch(projectsRepositoryProvider).list(pageSize: 200);
   if (user == null) return const [];
-  if (user.role == UserRole.admin || user.role == UserRole.opsExcellence) {
+  // Org-wide sight in any hat; everyone else picks from their assigned sites.
+  if (user.hasAny(const [UserRole.admin, UserRole.opsExcellence])) {
     return all.items.where((p) => p.isActive).toList();
   }
   final assigned = user.assignedProjectIds.toSet();

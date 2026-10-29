@@ -24,14 +24,17 @@ class _FakeAuth extends AuthController {
   AuthState build() => _fixed;
 }
 
-AuthState _sessionAs(UserRole role) => AuthState(
+AuthState _sessionAs(UserRole role) => _sessionWith([role]);
+
+/// A session for an employee holding several roles at once.
+AuthState _sessionWith(List<UserRole> roles) => AuthState(
       status: AuthStatus.authenticated,
       user: AuthUser(
         id: 'u1',
         name: 'Test User',
         email: 'test@vistarlogitek.com',
         username: 'test',
-        role: role,
+        roles: roles,
         assignedProjectIds: const [],
         isActive: true,
       ),

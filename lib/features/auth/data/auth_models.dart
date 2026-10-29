@@ -38,13 +38,34 @@ String roleLabel(UserRole r) {
   }
 }
 
+/// Parses the server's role list. `roles` is the full set (primary first); a
+/// backend that predates multi-role sends only `role`, which reads as a list of
+/// one — so this build works against either.
+///
+/// Unknown wire names are dropped rather than kept as [UserRole.unknown], which
+/// would otherwise sit in the set and make `has(UserRole.unknown)` true. If
+/// nothing survives, the primary role is used so the user is never left with an
+/// empty set.
+List<UserRole> rolesFromWire(Map<String, dynamic> j) {
+  final primary = roleFromWire(j['role'] as String);
+  final raw = j['roles'] as List<dynamic>?;
+  if (raw == null) return [primary];
+  final out = <UserRole>[];
+  for (final r in raw) {
+    if (r is! String) continue;
+    final parsed = roleFromWire(r);
+    if (parsed != UserRole.unknown && !out.contains(parsed)) out.add(parsed);
+  }
+  return out.isEmpty ? [primary] : out;
+}
+
 class AuthUser {
   const AuthUser({
     required this.id,
     required this.name,
     required this.email,
     required this.username,
-    required this.role,
+    required this.roles,
     required this.assignedProjectIds,
     required this.isActive,
   });
@@ -53,16 +74,34 @@ class AuthUser {
   final String name;
   final String email;
   final String username;
-  final UserRole role;
+
+  /// Every role this employee holds — one person, several hats. Primary first.
+  ///
+  /// Permissions are the UNION: check with [has] / [hasAny] rather than
+  /// comparing [role], which only ever names the first one. A project manager
+  /// who is also a cluster manager files cycles AND approves them, and a check
+  /// written as `user.role == UserRole.clusterManager` would deny them both.
+  final List<UserRole> roles;
+
   final List<String> assignedProjectIds;
   final bool isActive;
+
+  /// The primary role — for display, and for the places that must name one
+  /// (telemetry, a single pill). Never use it to decide what someone may do.
+  UserRole get role => roles.isEmpty ? UserRole.unknown : roles.first;
+
+  /// Does this user hold [r], in any of their hats?
+  bool has(UserRole r) => roles.contains(r);
+
+  /// Does this user hold any of [candidates]?
+  bool hasAny(Iterable<UserRole> candidates) => candidates.any(roles.contains);
 
   factory AuthUser.fromJson(Map<String, dynamic> j) => AuthUser(
         id: j['id'] as String,
         name: j['name'] as String,
         email: j['email'] as String,
         username: j['username'] as String,
-        role: roleFromWire(j['role'] as String),
+        roles: rolesFromWire(j),
         assignedProjectIds:
             (j['assignedProjectIds'] as List<dynamic>? ?? const []).cast<String>(),
         isActive: j['isActive'] as bool? ?? true,

@@ -6,6 +6,7 @@ import '../../core/theme/vistar.dart';
 import '../../core/vistar/widgets.dart';
 import '../auth/application/auth_controller.dart';
 import '../auth/data/auth_models.dart';
+import '../auth/presentation/role_chips.dart';
 import '../review/application/review_controllers.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -16,18 +17,21 @@ class HomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final user = ref.watch(authControllerProvider).user;
 
-    final isAdmin = user?.role == UserRole.admin;
+    // Each gate asks what the user HOLDS, not what their primary role is, so
+    // someone with several hats sees every tile their hats earn — a project
+    // manager who is also a cluster manager gets both Submission and Review.
+    final isAdmin = user?.has(UserRole.admin) ?? false;
     // Whoever files the monthly cycle: the site user and the project manager,
     // plus admin. The manager uploads the reports now instead of approving.
     final isFiler = user != null &&
-        (user.role == UserRole.siteUser ||
-            user.role == UserRole.manager ||
-            user.role == UserRole.admin);
+        user.hasAny(const [UserRole.siteUser, UserRole.manager, UserRole.admin]);
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
     final isReviewer = user != null &&
-        (user.role == UserRole.clusterManager ||
-            user.role == UserRole.opsExcellence ||
-            user.role == UserRole.admin);
+        user.hasAny(const [
+          UserRole.clusterManager,
+          UserRole.opsExcellence,
+          UserRole.admin,
+        ]);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -124,13 +128,20 @@ class HomeScreen extends ConsumerWidget {
                           _ActionCard(
                             icon: Icons.rule_folder_outlined,
                             title: 'Review queue',
+                            // Described by what they can actually do here. A
+                            // user holding both hats is told about both.
                             subtitle: pending?.label ??
-                                switch (user.role) {
-                                  UserRole.opsExcellence =>
+                                switch ((
+                                  user.has(UserRole.clusterManager) ||
+                                      user.has(UserRole.admin),
+                                  user.has(UserRole.opsExcellence),
+                                )) {
+                                  (true, true) =>
+                                    'Approve filed reports and allocate marks',
+                                  (false, true) =>
                                     'Open approved submissions to allocate marks',
-                                  UserRole.clusterManager =>
+                                  _ =>
                                     'Approve or reject the reports filed for your sites',
-                                  _ => 'Approve or reject submitted reports',
                                 },
                             onTap: () => context.go('/review'),
                             badge: pending?.count ?? 0,
@@ -402,30 +413,11 @@ class _AccountCard extends StatelessWidget {
               ],
             ),
           ),
-          RibbonPill(
-            label: roleLabel(user.role as UserRole).toUpperCase(),
-            kind: _pillForRole(user.role as UserRole),
-          ),
+          // Every hat, not just the primary one.
+          Flexible(child: RoleChips(roles: user.roles)),
         ],
       ),
     );
-  }
-
-  static PillKind _pillForRole(UserRole r) {
-    switch (r) {
-      case UserRole.admin:
-        return PillKind.pink;
-      case UserRole.manager:
-        return PillKind.info;
-      case UserRole.clusterManager:
-        return PillKind.violet;
-      case UserRole.opsExcellence:
-        return PillKind.violet;
-      case UserRole.siteUser:
-        return PillKind.amber;
-      case UserRole.unknown:
-        return PillKind.neutral;
-    }
   }
 }
 

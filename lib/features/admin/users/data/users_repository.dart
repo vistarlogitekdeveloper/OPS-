@@ -16,28 +16,10 @@ class UsersRepository {
     UserRole? role,
     bool? isActive,
   }) async {
-    String? roleParam;
-    switch (role) {
-      case UserRole.admin:
-        roleParam = 'ADMIN';
-        break;
-      case UserRole.manager:
-        roleParam = 'MANAGER';
-        break;
-      case UserRole.clusterManager:
-        roleParam = 'CLUSTER_MANAGER';
-        break;
-      case UserRole.siteUser:
-        roleParam = 'SITE_USER';
-        break;
-      case UserRole.opsExcellence:
-        roleParam = 'OPS_EXCELLENCE';
-        break;
-      case UserRole.unknown:
-      case null:
-        roleParam = null;
-        break;
-    }
+    // The server matches this against every role a user holds, not just their
+    // primary one, so filtering by "Cluster Manager" also finds a project
+    // manager who wears that hat too.
+    final roleParam = (role == null || role == UserRole.unknown) ? null : _roleWire(role);
     final res = await _dio.get<Map<String, dynamic>>(
       '/users',
       queryParameters: {
@@ -56,7 +38,8 @@ class UsersRepository {
     required String email,
     required String username,
     required String password,
-    required UserRole role,
+    /// Every role the employee holds, most important first. Never empty.
+    required List<UserRole> roles,
     required List<String> assignedProjectIds,
     bool isActive = true,
   }) async {
@@ -65,7 +48,10 @@ class UsersRepository {
       'email': email,
       'username': username,
       'password': password,
-      'role': _roleWire(role),
+      'roles': roles.map(_roleWire).toList(),
+      // `role` alongside `roles` so this build also works against a backend
+      // that predates multi-role: it reads `role` and ignores the rest.
+      'role': _roleWire(roles.first),
       'assignedProjectIds': assignedProjectIds,
       'isActive': isActive,
     });
@@ -76,14 +62,17 @@ class UsersRepository {
     String id, {
     String? name,
     String? email,
-    UserRole? role,
+    /// The full new set of roles, or null to leave them untouched.
+    List<UserRole>? roles,
     List<String>? assignedProjectIds,
     bool? isActive,
   }) async {
     final res = await _dio.patch<Map<String, dynamic>>('/users/$id', data: {
       'name': ?name,
       'email': ?email,
-      'role': ?(role == null ? null : _roleWire(role)),
+      'roles': ?roles?.map(_roleWire).toList(),
+      // As in create: the single-role spelling for an older backend.
+      'role': ?(roles == null ? null : _roleWire(roles.first)),
       'assignedProjectIds': ?assignedProjectIds,
       'isActive': ?isActive,
     });

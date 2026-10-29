@@ -17,9 +17,13 @@ class ReviewQueueScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(reviewQueueProvider);
     final controller = ref.read(reviewQueueProvider.notifier);
-    final role = ref.watch(authControllerProvider).user?.role;
-    final isOps = role == UserRole.opsExcellence;
-    final isCluster = role == UserRole.clusterManager;
+    final user = ref.watch(authControllerProvider).user;
+    // Checked across every hat. A user holding both gets isCluster, whose empty
+    // copy ("once a report is filed") covers the approval half they wait on
+    // first — the marks half follows from it.
+    final isCluster =
+        user?.hasAny(const [UserRole.clusterManager, UserRole.admin]) ?? false;
+    final isOps = !isCluster && (user?.has(UserRole.opsExcellence) ?? false);
     final pending = ref.watch(pendingReviewCountProvider).valueOrNull;
 
     return Scaffold(

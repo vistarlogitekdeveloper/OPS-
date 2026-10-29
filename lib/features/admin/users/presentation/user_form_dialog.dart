@@ -28,17 +28,41 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
   final _formKey = GlobalKey<FormBuilderState>();
   bool _busy = false;
   String? _error;
-  late UserRole _role;
+  /// Every role this employee holds, in pick order. The first is the primary
+  /// one (what the server stores in `role` and what a single-role view shows),
+  /// so order is preserved rather than using a Set.
+  late List<UserRole> _roles;
   late Set<String> _assignedProjectIds;
 
   bool get _editing => widget.initial != null;
+
+  /// The roles that work on assigned sites. Shown so the project list explains
+  /// itself for whichever of the user's hats actually needs it.
+  static const _siteRoles = [
+    UserRole.siteUser,
+    UserRole.manager,
+    UserRole.clusterManager,
+  ];
 
   @override
   void initState() {
     super.initState();
     final u = widget.initial;
-    _role = u?.role ?? UserRole.siteUser;
+    _roles = u == null ? [UserRole.siteUser] : List.of(u.roles);
+    if (_roles.isEmpty) _roles = [UserRole.siteUser];
     _assignedProjectIds = (u?.assignedProjectIds ?? const []).toSet();
+  }
+
+  /// Toggles a hat. The last one cannot be removed — a user with no role could
+  /// sign in and do nothing, and the server rejects an empty list anyway.
+  void _toggleRole(UserRole r, bool selected) {
+    setState(() {
+      if (selected) {
+        if (!_roles.contains(r)) _roles.add(r);
+      } else if (_roles.length > 1) {
+        _roles.remove(r);
+      }
+    });
   }
 
   @override
@@ -118,10 +142,19 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                   ),
                 ],
                 const SizedBox(height: 16),
-                Text('Role', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 4),
+                Text('Roles', style: theme.textTheme.labelLarge),
+                Text(
+                  _roles.length > 1
+                      ? 'This employee holds ${_roles.length} roles and can do everything all of them allow. '
+                          '${roleLabel(_roles.first)} is their primary role.'
+                      : 'Pick one or more. An employee holding several roles can do everything all of them allow.',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: [
                     for (final r in const [
                       UserRole.admin,
@@ -130,24 +163,48 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
                       UserRole.siteUser,
                       UserRole.opsExcellence,
                     ])
-                      ChoiceChip(
+                      FilterChip(
                         label: Text(roleLabel(r)),
-                        selected: _role == r,
-                        onSelected: (sel) => sel ? setState(() => _role = r) : null,
+                        selected: _roles.contains(r),
+                        // The last remaining role cannot be unpicked.
+                        onSelected: _roles.length == 1 && _roles.contains(r)
+                            ? null
+                            : (sel) => _toggleRole(r, sel),
                       ),
                   ],
                 ),
+                // Someone who both files reports and approves them cannot
+                // approve their OWN — the server refuses it — so say so here
+                // rather than letting an admin build a combination that
+                // silently does less than they expect.
+                if (_roles.contains(UserRole.clusterManager) &&
+                    _roles.any((r) =>
+                        r == UserRole.manager || r == UserRole.siteUser)) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 15, color: theme.hintColor),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'This user both files and approves reports. They will not be able '
+                          'to approve reports they filed themselves — another cluster manager '
+                          'on the site must.',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Text('Assigned projects', style: theme.textTheme.labelLarge),
                 Text(
-                  switch (_role) {
-                    UserRole.siteUser =>
-                      'Pick the site this user is responsible for.',
-                    UserRole.manager =>
-                      'Pick the projects this project manager files reports for.',
-                    UserRole.clusterManager =>
-                      'Pick the projects this cluster manager approves.',
-                    _ => 'Admins and Ops Excellence see all projects regardless.',
+                  switch (_roles.where(_siteRoles.contains).toList()) {
+                    [] => 'Admins and Ops Excellence see all projects regardless.',
+                    final site => 'Pick the sites this user works on as '
+                        '${site.map(roleLabel).join(' and ')}.',
                   },
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
@@ -250,7 +307,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
           widget.initial!.id,
           name: name,
           email: email,
-          role: _role,
+          roles: _roles,
           assignedProjectIds: assigned,
           isActive: isActive,
         );
@@ -260,7 +317,7 @@ class _UserFormDialogState extends ConsumerState<UserFormDialog> {
           email: email,
           username: (v['username'] as String).trim(),
           password: v['password'] as String,
-          role: _role,
+          roles: _roles,
           assignedProjectIds: assigned,
           isActive: isActive,
         );

@@ -23,7 +23,7 @@ class _FakeAuth extends AuthController {
           name: 'Admin',
           email: 'admin@vistarlogitek.com',
           username: 'admin',
-          role: UserRole.admin,
+          roles: [UserRole.admin],
           assignedProjectIds: [],
           isActive: true,
         ),

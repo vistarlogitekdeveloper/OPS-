@@ -7,7 +7,7 @@ import '../../../core/network/backend_controller.dart';
 import '../../../core/theme/vistar.dart';
 import '../../../core/vistar/widgets.dart';
 import '../../auth/application/auth_controller.dart';
-import '../../auth/data/auth_models.dart';
+import '../../auth/presentation/role_chips.dart';
 import '../application/theme_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -116,10 +116,8 @@ class SettingsScreen extends ConsumerWidget {
                                       ],
                                     ),
                                   ),
-                                  RibbonPill(
-                                    label: roleLabel(user.role).toUpperCase(),
-                                    kind: _pillForRole(user.role),
-                                  ),
+                                  // Every hat, not just the primary one.
+                                  Flexible(child: RoleChips(roles: user.roles)),
                                 ],
                               ),
                             ),
@@ -175,22 +173,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  static PillKind _pillForRole(UserRole r) {
-    switch (r) {
-      case UserRole.admin:
-        return PillKind.pink;
-      case UserRole.manager:
-        return PillKind.info;
-      case UserRole.clusterManager:
-        return PillKind.violet;
-      case UserRole.opsExcellence:
-        return PillKind.violet;
-      case UserRole.siteUser:
-        return PillKind.amber;
-      case UserRole.unknown:
-        return PillKind.neutral;
-    }
-  }
 }
 
 class _ApiSubtitle extends ConsumerWidget {

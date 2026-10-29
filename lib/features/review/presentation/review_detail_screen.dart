@@ -20,7 +20,7 @@ class ReviewDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(submissionDetailProvider(submissionId));
-    final role = ref.watch(authControllerProvider).user?.role;
+    final user = ref.watch(authControllerProvider).user;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -58,8 +58,11 @@ class ReviewDetailScreen extends ConsumerWidget {
                           child: _ItemCard(
                             submission: sub,
                             item: item,
-                            canScore: (role == UserRole.opsExcellence ||
-                                    role == UserRole.admin) &&
+                            canScore: (user?.hasAny(const [
+                                      UserRole.opsExcellence,
+                                      UserRole.admin,
+                                    ]) ??
+                                    false) &&
                                 sub.status == SubmissionStatus.approved,
                           ),
                         ),
@@ -67,9 +70,12 @@ class ReviewDetailScreen extends ConsumerWidget {
                         const SizedBox(height: 8),
                         _ApprovalTrail(approvals: sub.approvals),
                       ],
-                      if (_canSeeDecisionPanel(role, sub)) ...[
+                      if (_canSeeDecisionPanel(user, sub)) ...[
                         const SizedBox(height: 8),
                         _DecisionActions(submission: sub),
+                      ] else if (_filedByViewer(user, sub)) ...[
+                        const SizedBox(height: 8),
+                        const _OwnReportNotice(),
                       ],
                     ],
                   ),
@@ -85,9 +91,53 @@ class ReviewDetailScreen extends ConsumerWidget {
 
 /// The cluster manager takes the one approval decision; admin is the escape
 /// hatch. The project manager files cycles now, so it never sees this panel.
-bool _canSeeDecisionPanel(UserRole? role, Submission sub) {
-  if (role != UserRole.clusterManager && role != UserRole.admin) return false;
+///
+/// Holding the role is checked across every hat the user wears, since one
+/// employee may be both the project manager who files and the cluster manager
+/// who approves — but that same person may not decide on a report THEY filed.
+/// The server refuses it either way; hiding the panel is what stops the app
+/// offering a button that can only fail.
+bool _canSeeDecisionPanel(AuthUser? user, Submission sub) {
+  if (user == null) return false;
+  if (!user.hasAny(const [UserRole.clusterManager, UserRole.admin])) return false;
+  if (_filedByViewer(user, sub)) return false;
   return isAwaitingApproval(sub.status);
+}
+
+/// Would this viewer be able to decide, were the report not their own? Used to
+/// explain the missing panel rather than leaving a silent gap.
+bool _filedByViewer(AuthUser? user, Submission sub) {
+  if (user == null) return false;
+  if (!user.hasAny(const [UserRole.clusterManager, UserRole.admin])) return false;
+  return isAwaitingApproval(sub.status) && sub.wasFiledBy(user.id);
+}
+
+/// Shown to an approver looking at a report they filed themselves.
+class _OwnReportNotice extends StatelessWidget {
+  const _OwnReportNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return VistarCard(
+      cornerS: true,
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: theme.hintColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'You filed this report, so you cannot approve or reject it. '
+              'Another cluster manager on this site must decide.',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 PillKind _statusPill(SubmissionStatus s) {

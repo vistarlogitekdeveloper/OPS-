@@ -34,7 +34,21 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(authControllerProvider).user?.role ?? UserRole.unknown;
+    final user = ref.watch(authControllerProvider).user;
+    // One screen, so one dashboard has to win. Widest scope first — the same
+    // precedence the server uses for a multi-role user's project scope, so the
+    // view a user lands on always matches the data they are allowed to see.
+    final view = user == null
+        ? UserRole.unknown
+        : user.has(UserRole.admin)
+            ? UserRole.admin
+            : user.has(UserRole.opsExcellence)
+                ? UserRole.opsExcellence
+                : user.hasAny(const [UserRole.manager, UserRole.clusterManager])
+                    ? UserRole.manager
+                    : user.has(UserRole.siteUser)
+                        ? UserRole.siteUser
+                        : UserRole.unknown;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -65,7 +79,7 @@ class DashboardScreen extends ConsumerWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1280),
-              child: switch (role) {
+              child: switch (view) {
                 UserRole.siteUser => const _SiteUserDashboard(),
                 // Both the project manager (who files) and the cluster manager
                 // (who approves) oversee a portfolio of sites, so they get the

@@ -20,22 +20,23 @@ class _FakeAuth extends AuthController {
   AuthState build() => _fixed;
 }
 
-AuthState _sessionAs(UserRole role) => AuthState(
+/// A session for an employee holding one role, or several at once.
+AuthState _sessionWith(List<UserRole> roles) => AuthState(
       status: AuthStatus.authenticated,
       user: AuthUser(
         id: 'u1',
         name: 'Test User',
         email: 'test@vistarlogitek.com',
         username: 'test',
-        role: role,
+        roles: roles,
         assignedProjectIds: const ['p1'],
         isActive: true,
       ),
     );
 
-Widget _home(UserRole role) => ProviderScope(
+Widget _homeWith(List<UserRole> roles) => ProviderScope(
       overrides: [
-        authControllerProvider.overrideWith(() => _FakeAuth(_sessionAs(role))),
+        authControllerProvider.overrideWith(() => _FakeAuth(_sessionWith(roles))),
         // The badge would otherwise hit the network.
         pendingReviewCountProvider
             .overrideWith((ref) async => PendingReviewCount.empty),
@@ -43,13 +44,25 @@ Widget _home(UserRole role) => ProviderScope(
       child: MaterialApp(theme: AppTheme.dark(), home: const HomeScreen()),
     );
 
-Future<void> _pumpHome(WidgetTester tester, UserRole role) async {
+Future<void> _pumpHome(WidgetTester tester, UserRole role) =>
+    _pumpHomeWith(tester, [role]);
+
+Future<void> _pumpHomeWith(WidgetTester tester, List<UserRole> roles) async {
   tester.view.physicalSize = const Size(1200, 1400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(_home(role));
+  await tester.pumpWidget(_homeWith(roles));
   await tester.pumpAndSettle();
 }
+
+Submission _submission({required String submittedBy}) => Submission.fromJson({
+      'id': 's1',
+      'projectId': 'p1',
+      'month': '2026-10',
+      'status': 'SUBMITTED',
+      'submittedBy': submittedBy,
+      'items': const [],
+    });
 
 void main() {
   group('status vocabulary', () {
@@ -164,6 +177,114 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Review queue'), findsOneWidget);
       expect(find.text('Monthly submission'), findsNothing);
+    });
+  });
+
+  group('one employee, several roles', () {
+    test('the wire list is parsed, primary first', () {
+      final u = AuthUser.fromJson({
+        'id': 'u1',
+        'name': 'Dual',
+        'email': 'd@vistarlogitek.com',
+        'username': 'dual',
+        'role': 'MANAGER',
+        'roles': ['MANAGER', 'CLUSTER_MANAGER'],
+        'assignedProjectIds': ['p1'],
+      });
+      expect(u.roles, [UserRole.manager, UserRole.clusterManager]);
+      // `role` still names one, for display and telemetry.
+      expect(u.role, UserRole.manager);
+      expect(u.has(UserRole.clusterManager), isTrue);
+      expect(u.has(UserRole.admin), isFalse);
+    });
+
+    test('a backend without `roles` still yields a one-role user', () {
+      // An older deploy sends `role` alone; the app must not end up role-less.
+      final u = AuthUser.fromJson({
+        'id': 'u1',
+        'name': 'Solo',
+        'email': 's@vistarlogitek.com',
+        'username': 'solo',
+        'role': 'SITE_USER',
+      });
+      expect(u.roles, [UserRole.siteUser]);
+      expect(u.has(UserRole.siteUser), isTrue);
+    });
+
+    test('an unknown role name never becomes a held role', () {
+      // Otherwise `has(UserRole.unknown)` would be true and a future role name
+      // would silently read as a permission the user does not have.
+      final u = AuthUser.fromJson({
+        'id': 'u1',
+        'name': 'Odd',
+        'email': 'o@vistarlogitek.com',
+        'username': 'odd',
+        'role': 'SITE_USER',
+        'roles': ['SITE_USER', 'SOMETHING_NEW'],
+      });
+      expect(u.roles, [UserRole.siteUser]);
+      expect(u.has(UserRole.unknown), isFalse);
+    });
+
+    test('`roles` carrying only unknown names falls back to the primary', () {
+      final u = AuthUser.fromJson({
+        'id': 'u1',
+        'name': 'Odd',
+        'email': 'o@vistarlogitek.com',
+        'username': 'odd',
+        'role': 'OPS_EXCELLENCE',
+        'roles': ['SOMETHING_NEW'],
+      });
+      expect(u.roles, [UserRole.opsExcellence]);
+    });
+
+    testWidgets('a project manager who is also cluster manager gets both tiles',
+        (tester) async {
+      // The whole point of multi-role: the union, not the primary role.
+      await _pumpHomeWith(tester, [UserRole.manager, UserRole.clusterManager]);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Monthly submission'), findsOneWidget);
+      expect(find.text('Review queue'), findsOneWidget);
+    });
+
+    testWidgets('a secondary admin hat still unlocks the admin button',
+        (tester) async {
+      await _pumpHomeWith(tester, [UserRole.siteUser, UserRole.admin]);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byTooltip('Admin'), findsOneWidget);
+    });
+
+    testWidgets('a single-role site user gets no admin button', (tester) async {
+      await _pumpHome(tester, UserRole.siteUser);
+
+      expect(find.byTooltip('Admin'), findsNothing);
+    });
+  });
+
+  group('nobody approves their own report', () {
+    // Mirrors the server rule. The app hides the decision panel rather than
+    // offering a button that can only come back 403.
+    test('a submission knows who filed it', () {
+      final s = _submission(submittedBy: 'u1');
+      expect(s.wasFiledBy('u1'), isTrue);
+      expect(s.wasFiledBy('u2'), isFalse);
+      // Unknown either way is not a match — the server still refuses.
+      expect(s.wasFiledBy(null), isFalse);
+      expect(_submission(submittedBy: '').wasFiledBy(''), isFalse);
+    });
+
+    test('a backend that omits submittedBy claims nothing', () {
+      final s = Submission.fromJson({
+        'id': 's1',
+        'projectId': 'p1',
+        'month': '2026-10',
+        'status': 'SUBMITTED',
+        'items': const [],
+      });
+      expect(s.submittedById, isNull);
+      expect(s.wasFiledBy('u1'), isFalse);
     });
   });
 }

@@ -8,6 +8,7 @@ import '../../../../core/widgets/async_value_view.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/data/auth_models.dart';
+import '../../../auth/presentation/role_chips.dart';
 import '../application/users_controller.dart';
 import '../data/users_repository.dart';
 import 'set_password_dialog.dart';
@@ -148,23 +149,6 @@ class UsersListScreen extends ConsumerWidget {
   }
 }
 
-PillKind _pillForRole(UserRole r) {
-  switch (r) {
-    case UserRole.admin:
-      return PillKind.pink;
-    case UserRole.manager:
-      return PillKind.info;
-    case UserRole.clusterManager:
-      return PillKind.violet;
-    case UserRole.opsExcellence:
-      return PillKind.violet;
-    case UserRole.siteUser:
-      return PillKind.amber;
-    case UserRole.unknown:
-      return PillKind.neutral;
-  }
-}
-
 class _RoleFilter extends StatefulWidget {
   const _RoleFilter({required this.onChanged});
   final ValueChanged<UserRole?> onChanged;
@@ -181,15 +165,15 @@ class _RoleFilterState extends State<_RoleFilter> {
     return DropdownButton<UserRole?>(
       value: _selected,
       hint: const Text('All roles'),
-      items: const [
-        DropdownMenuItem(value: null, child: Text('All roles')),
-        DropdownMenuItem(value: UserRole.admin, child: Text('Admin')),
-        DropdownMenuItem(value: UserRole.manager, child: Text('Manager')),
-        DropdownMenuItem(
-            value: UserRole.clusterManager, child: Text('Cluster Manager')),
-        DropdownMenuItem(value: UserRole.siteUser, child: Text('Site User')),
-        DropdownMenuItem(
-            value: UserRole.opsExcellence, child: Text('Ops Excellence')),
+      // Built from the enum and labelled by roleLabel, so this list cannot
+      // drift from the roles that actually exist (it already had, twice: no
+      // Cluster Manager entry, and "Manager" where roleLabel says "Project
+      // Manager"). Matches users holding the role in ANY hat.
+      items: [
+        const DropdownMenuItem(value: null, child: Text('All roles')),
+        for (final r in UserRole.values)
+          if (r != UserRole.unknown)
+            DropdownMenuItem(value: r, child: Text(roleLabel(r))),
       ],
       onChanged: (v) {
         setState(() => _selected = v);
@@ -251,16 +235,11 @@ class _UserRow extends StatelessWidget {
               ],
             ),
           ),
-          // Fixed-width slot for the role pill so right edges align across rows.
+          // Fixed-width slot for the role pills so right edges align across
+          // rows. A multi-role user wraps within it rather than widening it.
           SizedBox(
             width: 144,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: RibbonPill(
-                label: roleLabel(user.role).toUpperCase(),
-                kind: _pillForRole(user.role),
-              ),
-            ),
+            child: RoleChips(roles: user.roles),
           ),
           const SizedBox(width: 8),
           // Reserve a slot for the optional Inactive pill so the icon column stays put.

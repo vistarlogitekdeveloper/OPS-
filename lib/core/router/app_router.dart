@@ -43,7 +43,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (auth.isAuthenticated && atLogin) return '/';
       // Non-admins bounced out of /admin/*.
-      if (inAdmin && auth.user?.role != UserRole.admin) return '/';
+      // Admin in ANY hat — a user whose primary role is something else but who
+      // also holds admin still reaches /admin/*.
+      if (inAdmin && !(auth.user?.has(UserRole.admin) ?? false)) return '/';
       return null;
     },
     routes: [

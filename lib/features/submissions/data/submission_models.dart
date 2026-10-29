@@ -253,6 +253,7 @@ class Submission {
     this.submittedAt,
     this.reviewedAt,
     this.comments,
+    this.submittedById,
   });
 
   final String id;
@@ -269,6 +270,23 @@ class Submission {
   final DateTime? reviewedAt;
   final String? comments;
 
+  /// Who filed this cycle. Nobody approves their own report — the server
+  /// refuses it — so the review screen hides the decision panel from them
+  /// rather than offering a button that always 403s. Null only when talking to
+  /// a backend old enough not to send it, where the server check still applies.
+  final String? submittedById;
+
+  /// Whether [userId] filed this report, and so cannot decide on it.
+  ///
+  /// An absent or empty id on either side means "not known to be the same
+  /// person" rather than a match — two blanks are not evidence of anything.
+  bool wasFiledBy(String? userId) {
+    final filer = submittedById;
+    if (userId == null || userId.isEmpty) return false;
+    if (filer == null || filer.isEmpty) return false;
+    return filer == userId;
+  }
+
   factory Submission.fromJson(Map<String, dynamic> j) => Submission(
         id: j['id'] as String,
         projectId: j['projectId'] as String,
@@ -276,6 +294,7 @@ class Submission {
         status: submissionStatusFromWire(j['status'] as String),
         totalScore: j['totalScore'] as int? ?? 0,
         comments: j['comments'] as String?,
+        submittedById: j['submittedBy'] as String?,
         submittedAt: j['submittedAt'] != null ? DateTime.parse(j['submittedAt'] as String) : null,
         reviewedAt: j['reviewedAt'] != null ? DateTime.parse(j['reviewedAt'] as String) : null,
         project: j['project'] != null
